@@ -142,3 +142,32 @@ class ExtractInvalidRelationError(BaseAppException):
             entity_name=entity_name,
             key=key
         )
+
+class UserNotFoundError(BaseAppException):
+    def __init__(self, user_key: str):
+        super().__init__(
+            status_code=404,
+            code="RM-0015",
+            message_en="User with KEY {user_key} not found",
+            message_pt="Usuário com KEY {user_key} não encontrado",
+            user_key=user_key
+        )
+
+class UserDuplicateEmailError(BaseAppException):
+    def __init__(self, email: str):
+        super().__init__(
+            status_code=400,
+            code="RM-0016",
+            message_en="A user with email {email} already exists",
+            message_pt="Um usuário com o email {email} já existe",
+            email=email
+        )
+
+class InvalidCredentialsError(BaseAppException):
+    def __init__(self):
+        super().__init__(
+            status_code=401,
+            code="RM-0017",
+            message_en="Invalid email or password",
+            message_pt="Email ou senha inválidos"
+        )
