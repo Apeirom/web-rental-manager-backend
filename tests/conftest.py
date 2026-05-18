@@ -7,8 +7,10 @@ from sqlalchemy.pool import StaticPool
 from src.app import app
 from src.models.base import Base
 from src.utils.database import get_db
+from src.utils.security import create_access_token
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -25,6 +27,12 @@ def override_get_db():
         db.close()
 
 app.dependency_overrides[get_db] = override_get_db
+
+@pytest.fixture
+def auth_client(client):
+    token = create_access_token({"sub": "test-key", "email": "admin@test.com", "role": "master"})
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    return client
 
 @pytest.fixture(autouse=True)
 def setup_database():

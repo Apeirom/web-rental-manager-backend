@@ -1,10 +1,15 @@
-from fastapi import FastAPI, Depends, status
+from fastapi import FastAPI, Depends, status, Request, HTTPException
 from sqlalchemy.orm import Session
 
 from src.utils.database import get_db, engine
 from src.models.base import Base
+from src.middlewares.auth_middleware import AuthMiddleware
 
 from src.controller.health_controller import HealthController
+
+from src.schemas.user_schema import UserCreateSchema, UserLoginSchema
+from src.dto.user_dto import UserDTO, TokenDTO
+from src.controller.user_controller import UserController
 
 from src.schemas.tenant_schema import TenantCreateSchema, TenantUpdateSchema
 from src.dto.tenant_dto import TenantDTO
@@ -42,10 +47,28 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+app.add_middleware(AuthMiddleware)
+
 @app.get("/health", tags=["System"])
 def health_check(db: Session = Depends(get_db)):
     controller = HealthController(db)
     return controller.check_status()
+
+
+
+@app.post("/users/register", response_model=UserDTO, status_code=status.HTTP_201_CREATED)
+def register_user(schema: UserCreateSchema, request: Request, db: Session = Depends(get_db)):
+    current_user = request.state.user
+    if current_user.get("role") != "master":
+        raise HTTPException(status_code=403, detail="Apenas usuários master podem registrar novos usuários")
+
+    controller = UserController(db)
+    return controller.register(schema)
+
+@app.post("/auth/login", response_model=TokenDTO)
+def login(schema: UserLoginSchema, db: Session = Depends(get_db)):
+    controller = UserController(db)
+    return controller.login(schema)
 
 
 
