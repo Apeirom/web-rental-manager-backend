@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, status, Request, HTTPException
+from fastapi import FastAPI, Depends, status, Request, HTTPException, APIRouter
+from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 
 from src.utils.database import get_db, engine
@@ -43,20 +44,41 @@ from src.schemas.extract_schema import ExtractCreateSchema, ExtractUpdateSchema
 from src.dto.extract_dto import ExtractDTO
 from src.controller.extract_controller import ExtractController
 
+
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+
+bearer_scheme = HTTPBearer()
+
+
+app = FastAPI(
+    title="Rental Manager API",
+    description="API robusta para gestão de inquilinos, imóveis e contratos.",
+    version="1.0.0"
+)
+
 
 app.add_middleware(AuthMiddleware)
 
-@app.get("/health", tags=["System"])
+
+
+@app.get("/", tags=["0. Monitoramento e Sistema"])
+def root():
+    return {"status": "Rental Manager API is online"}
+
+
+@app.get("/health", tags=["0. Monitoramento e Sistema"])
 def health_check(db: Session = Depends(get_db)):
     controller = HealthController(db)
     return controller.check_status()
 
 
 
-@app.post("/users/register", response_model=UserDTO, status_code=status.HTTP_201_CREATED)
+auth_router = APIRouter(
+    tags=["1. Autenticação e Usuários"]
+)
+
+@auth_router.post("/users/register", response_model=UserDTO, status_code=status.HTTP_201_CREATED)
 def register_user(schema: UserCreateSchema, request: Request, db: Session = Depends(get_db)):
     current_user = request.state.user
     if current_user.get("role") != "master":
@@ -65,223 +87,284 @@ def register_user(schema: UserCreateSchema, request: Request, db: Session = Depe
     controller = UserController(db)
     return controller.register(schema)
 
-@app.post("/auth/login", response_model=TokenDTO)
+@auth_router.post("/auth/login", response_model=TokenDTO)
 def login(schema: UserLoginSchema, db: Session = Depends(get_db)):
     controller = UserController(db)
     return controller.login(schema)
 
 
 
-@app.post("/tenants", response_model=TenantDTO, status_code=status.HTTP_201_CREATED)
+tenant_router = APIRouter(
+    prefix="/tenants",
+    tags=["2. Inquilinos (Tenants)"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@tenant_router.post("", response_model=TenantDTO, status_code=status.HTTP_201_CREATED)
 def create_tenant(schema: TenantCreateSchema, db: Session = Depends(get_db)):
     controller = TenantController(db)
     return controller.create_tenant(schema)
 
-@app.get("/tenants", response_model=list[TenantDTO])
+@tenant_router.get("", response_model=list[TenantDTO])
 def list_tenants(db: Session = Depends(get_db)):
     controller = TenantController(db)
     return controller.get_all_tenants()
 
-@app.get("/tenants/{tenant_key}", response_model=TenantDTO)
+@tenant_router.get("/{tenant_key}", response_model=TenantDTO)
 def get_tenant(tenant_key: str, db: Session = Depends(get_db)):
     controller = TenantController(db)
     return controller.get_tenant(tenant_key)
 
-@app.put("/tenants/{tenant_key}", response_model=TenantDTO)
+
+@tenant_router.put("/{tenant_key}", response_model=TenantDTO)
 def update_tenant(tenant_key: str, schema: TenantUpdateSchema, db: Session = Depends(get_db)):
     controller = TenantController(db)
     return controller.update_tenant(tenant_key, schema)
 
-@app.delete("/tenants/{tenant_key}", status_code=status.HTTP_204_NO_CONTENT)
+@tenant_router.delete("/{tenant_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_tenant(tenant_key: str, db: Session = Depends(get_db)):
     controller = TenantController(db)
     controller.delete_tenant(tenant_key)
 
 
 
-@app.post("/properties", response_model=PropertyDTO, status_code=status.HTTP_201_CREATED)
+property_router = APIRouter(
+    prefix="/properties",
+    tags=["3. Imóveis (Properties)"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@property_router.post("", response_model=PropertyDTO, status_code=status.HTTP_201_CREATED)
 def create_property(schema: PropertyCreateSchema, db: Session = Depends(get_db)):
     controller = PropertyController(db)
     return controller.create_property(schema)
 
-@app.get("/properties", response_model=list[PropertyDTO])
+@property_router.get("", response_model=list[PropertyDTO])
 def list_properties(db: Session = Depends(get_db)):
     controller = PropertyController(db)
     return controller.get_all_properties()
 
-@app.get("/properties/{property_key}", response_model=PropertyDTO)
+@property_router.get("/{property_key}", response_model=PropertyDTO)
 def get_property(property_key: str, db: Session = Depends(get_db)):
     controller = PropertyController(db)
     return controller.get_property(property_key)
 
-@app.put("/properties/{property_key}", response_model=PropertyDTO)
+@property_router.put("/{property_key}", response_model=PropertyDTO)
 def update_property(property_key: str, schema: PropertyUpdateSchema, db: Session = Depends(get_db)):
     controller = PropertyController(db)
     return controller.update_property(property_key, schema)
 
-@app.delete("/properties/{property_key}", status_code=status.HTTP_204_NO_CONTENT)
+@property_router.delete("/{property_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_property(property_key: str, db: Session = Depends(get_db)):
     controller = PropertyController(db)
     controller.delete_property(property_key)
 
 
 
-@app.post("/real-estates", response_model=RealEstateDTO, status_code=status.HTTP_201_CREATED)
+real_estate_router = APIRouter(
+    prefix="/real-estates",
+    tags=["4. Imobiliárias (Real Estates)"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@real_estate_router.post("", response_model=RealEstateDTO, status_code=status.HTTP_201_CREATED)
 def create_real_estate(schema: RealEstateCreateSchema, db: Session = Depends(get_db)):
     controller = RealEstateController(db)
     return controller.create_real_estate(schema)
 
-@app.get("/real-estates", response_model=list[RealEstateDTO])
+@real_estate_router.get("", response_model=list[RealEstateDTO])
 def list_real_estates(db: Session = Depends(get_db)):
     controller = RealEstateController(db)
     return controller.get_all_real_estates()
 
-@app.get("/real-estates/{real_estate_key}", response_model=RealEstateDTO)
+@real_estate_router.get("/{real_estate_key}", response_model=RealEstateDTO)
 def get_real_estate(real_estate_key: str, db: Session = Depends(get_db)):
     controller = RealEstateController(db)
     return controller.get_real_estate(real_estate_key)
 
-@app.put("/real-estates/{real_estate_key}", response_model=RealEstateDTO)
+@real_estate_router.put("/{real_estate_key}", response_model=RealEstateDTO)
 def update_real_estate(real_estate_key: str, schema: RealEstateUpdateSchema, db: Session = Depends(get_db)):
     controller = RealEstateController(db)
     return controller.update_real_estate(real_estate_key, schema)
 
-@app.delete("/real-estates/{real_estate_key}", status_code=status.HTTP_204_NO_CONTENT)
+@real_estate_router.delete("/{real_estate_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_real_estate(real_estate_key: str, db: Session = Depends(get_db)):
     controller = RealEstateController(db)
     controller.delete_real_estate(real_estate_key)
 
 
 
-@app.post("/guarantors", response_model=GuarantorDTO, status_code=status.HTTP_201_CREATED)
+guarantor_router = APIRouter(
+    prefix="/guarantors",
+    tags=["5. Fiadores (Guarantors)"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@guarantor_router.post("", response_model=GuarantorDTO, status_code=status.HTTP_201_CREATED)
 def create_guarantor(schema: GuarantorCreateSchema, db: Session = Depends(get_db)):
     controller = GuarantorController(db)
     return controller.create_guarantor(schema)
 
-@app.get("/guarantors", response_model=list[GuarantorDTO])
+@guarantor_router.get("", response_model=list[GuarantorDTO])
 def list_guarantors(db: Session = Depends(get_db)):
     controller = GuarantorController(db)
     return controller.get_all_guarantors()
 
-@app.get("/guarantors/{guarantor_key}", response_model=GuarantorDTO)
+@guarantor_router.get("/{guarantor_key}", response_model=GuarantorDTO)
 def get_guarantor(guarantor_key: str, db: Session = Depends(get_db)):
     controller = GuarantorController(db)
     return controller.get_guarantor(guarantor_key)
 
-@app.put("/guarantors/{guarantor_key}", response_model=GuarantorDTO)
+@guarantor_router.put("/{guarantor_key}", response_model=GuarantorDTO)
 def update_guarantor(guarantor_key: str, schema: GuarantorUpdateSchema, db: Session = Depends(get_db)):
     controller = GuarantorController(db)
     return controller.update_guarantor(guarantor_key, schema)
 
-@app.delete("/guarantors/{guarantor_key}", status_code=status.HTTP_204_NO_CONTENT)
+@guarantor_router.delete("/{guarantor_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_guarantor(guarantor_key: str, db: Session = Depends(get_db)):
     controller = GuarantorController(db)
     controller.delete_guarantor(guarantor_key)
 
 
 
-@app.post("/bail-insurances", response_model=BailInsuranceDTO, status_code=status.HTTP_201_CREATED)
+bail_insurance_router = APIRouter(
+    prefix="/bail-insurances",
+    tags=["6. Seguros Fiança (Bail Insurances)"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@bail_insurance_router.post("", response_model=BailInsuranceDTO, status_code=status.HTTP_201_CREATED)
 def create_bail_insurance(schema: BailInsuranceCreateSchema, db: Session = Depends(get_db)):
     controller = BailInsuranceController(db)
     return controller.create_bail_insurance(schema)
 
-@app.get("/bail-insurances", response_model=list[BailInsuranceDTO])
+@bail_insurance_router.get("", response_model=list[BailInsuranceDTO])
 def list_bail_insurances(db: Session = Depends(get_db)):
     controller = BailInsuranceController(db)
     return controller.get_all_bail_insurances()
 
-@app.get("/bail-insurances/{bail_insurance_key}", response_model=BailInsuranceDTO)
+@bail_insurance_router.get("/{bail_insurance_key}", response_model=BailInsuranceDTO)
 def get_bail_insurance(bail_insurance_key: str, db: Session = Depends(get_db)):
     controller = BailInsuranceController(db)
     return controller.get_bail_insurance(bail_insurance_key)
 
-@app.put("/bail-insurances/{bail_insurance_key}", response_model=BailInsuranceDTO)
+@bail_insurance_router.put("/{bail_insurance_key}", response_model=BailInsuranceDTO)
 def update_bail_insurance(bail_insurance_key: str, schema: BailInsuranceUpdateSchema, db: Session = Depends(get_db)):
     controller = BailInsuranceController(db)
     return controller.update_bail_insurance(bail_insurance_key, schema)
 
-@app.delete("/bail-insurances/{bail_insurance_key}", status_code=status.HTTP_204_NO_CONTENT)
+@bail_insurance_router.delete("/{bail_insurance_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_bail_insurance(bail_insurance_key: str, db: Session = Depends(get_db)):
     controller = BailInsuranceController(db)
     controller.delete_bail_insurance(bail_insurance_key)
 
 
 
-@app.post("/contracts", response_model=ContractDTO, status_code=status.HTTP_201_CREATED)
+contract_router = APIRouter(
+    prefix="/contracts",
+    tags=["7. Contratos (Contracts)"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@contract_router.post("", response_model=ContractDTO, status_code=status.HTTP_201_CREATED)
 def create_contract(schema: ContractCreateSchema, db: Session = Depends(get_db)):
     controller = ContractController(db)
     return controller.create_contract(schema)
 
-@app.get("/contracts", response_model=list[ContractDTO])
+@contract_router.get("", response_model=list[ContractDTO])
 def list_contracts(db: Session = Depends(get_db)):
     controller = ContractController(db)
     return controller.get_all_contracts()
 
-@app.get("/contracts/{contract_key}", response_model=ContractDTO)
+@contract_router.get("/{contract_key}", response_model=ContractDTO)
 def get_contract(contract_key: str, db: Session = Depends(get_db)):
     controller = ContractController(db)
     return controller.get_contract(contract_key)
 
-@app.put("/contracts/{contract_key}", response_model=ContractDTO)
+@contract_router.put("/{contract_key}", response_model=ContractDTO)
 def update_contract(contract_key: str, schema: ContractUpdateSchema, db: Session = Depends(get_db)):
     controller = ContractController(db)
     return controller.update_contract(contract_key, schema)
 
-@app.delete("/contracts/{contract_key}", status_code=status.HTTP_204_NO_CONTENT)
+@contract_router.delete("/{contract_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_contract(contract_key: str, db: Session = Depends(get_db)):
     controller = ContractController(db)
     controller.delete_contract(contract_key)
 
 
 
-@app.post("/payments", response_model=PaymentDTO, status_code=status.HTTP_201_CREATED)
+payment_router = APIRouter(
+    prefix="/payments",
+    tags=["8. Pagamentos (Payments)"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@payment_router.post("", response_model=PaymentDTO, status_code=status.HTTP_201_CREATED)
 def create_payment(schema: PaymentCreateSchema, db: Session = Depends(get_db)):
     controller = PaymentController(db)
     return controller.create_payment(schema)
 
-@app.get("/payments", response_model=list[PaymentDTO])
+@payment_router.get("", response_model=list[PaymentDTO])
 def list_payments(db: Session = Depends(get_db)):
     controller = PaymentController(db)
     return controller.get_all_payments()
 
-@app.get("/payments/{payment_key}", response_model=PaymentDTO)
+@payment_router.get("/{payment_key}", response_model=PaymentDTO)
 def get_payment(payment_key: str, db: Session = Depends(get_db)):
     controller = PaymentController(db)
     return controller.get_payment(payment_key)
 
-@app.put("/payments/{payment_key}", response_model=PaymentDTO)
+@payment_router.put("/{payment_key}", response_model=PaymentDTO)
 def update_payment(payment_key: str, schema: PaymentUpdateSchema, db: Session = Depends(get_db)):
     controller = PaymentController(db)
     return controller.update_payment(payment_key, schema)
 
-@app.delete("/payments/{payment_key}", status_code=status.HTTP_204_NO_CONTENT)
+@payment_router.delete("/{payment_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_payment(payment_key: str, db: Session = Depends(get_db)):
     controller = PaymentController(db)
     controller.delete_payment(payment_key)
 
 
 
-@app.post("/extracts", response_model=ExtractDTO, status_code=status.HTTP_201_CREATED)
+extract_router = APIRouter(
+    prefix="/extracts",
+    tags=["9. Extratos (Extracts)"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@extract_router.post("", response_model=ExtractDTO, status_code=status.HTTP_201_CREATED)
 def create_extract(schema: ExtractCreateSchema, db: Session = Depends(get_db)):
     controller = ExtractController(db)
     return controller.create_extract(schema)
 
-@app.get("/extracts", response_model=list[ExtractDTO])
+@extract_router.get("", response_model=list[ExtractDTO])
 def list_extracts(db: Session = Depends(get_db)):
     controller = ExtractController(db)
     return controller.get_all_extracts()
 
-@app.get("/extracts/{extract_key}", response_model=ExtractDTO)
+@extract_router.get("/{extract_key}", response_model=ExtractDTO)
 def get_extract(extract_key: str, db: Session = Depends(get_db)):
     controller = ExtractController(db)
     return controller.get_extract(extract_key)
 
-@app.put("/extracts/{extract_key}", response_model=ExtractDTO)
+@extract_router.put("/{extract_key}", response_model=ExtractDTO)
 def update_extract(extract_key: str, schema: ExtractUpdateSchema, db: Session = Depends(get_db)):
     controller = ExtractController(db)
     return controller.update_extract(extract_key, schema)
 
-@app.delete("/extracts/{extract_key}", status_code=status.HTTP_204_NO_CONTENT)
+@extract_router.delete("/{extract_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_extract(extract_key: str, db: Session = Depends(get_db)):
     controller = ExtractController(db)
     controller.delete_extract(extract_key)
+
+
+
+app.include_router(auth_router)
+app.include_router(tenant_router)
+app.include_router(property_router)
+app.include_router(real_estate_router)
+app.include_router(guarantor_router)
+app.include_router(bail_insurance_router)
+app.include_router(contract_router)
+app.include_router(payment_router)
+app.include_router(extract_router)
