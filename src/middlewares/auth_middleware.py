@@ -6,7 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        public_paths = ["/auth/login", "/docs", "/openapi.json"]
+        public_paths = ["/auth/login", "/docs", "/openapi.json", "/health", "/"]
         
         if request.url.path not in public_paths and request.method != "OPTIONS":
             auth_header = request.headers.get("Authorization")
