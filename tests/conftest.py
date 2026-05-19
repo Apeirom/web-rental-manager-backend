@@ -8,6 +8,8 @@ from src.app import app
 from src.models.base import Base
 from src.utils.database import get_db
 from src.utils.security import create_access_token
+from tests.utils.database_setup import seed_enumerators
+
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
@@ -19,6 +21,7 @@ engine = create_engine(
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 def override_get_db():
     db = TestingSessionLocal()
     try:
@@ -26,7 +29,9 @@ def override_get_db():
     finally:
         db.close()
 
+
 app.dependency_overrides[get_db] = override_get_db
+
 
 @pytest.fixture
 def auth_client(client):
@@ -34,11 +39,21 @@ def auth_client(client):
     client.headers.update({"Authorization": f"Bearer {token}"})
     return client
 
+
 @pytest.fixture(autouse=True)
 def setup_database():
     Base.metadata.create_all(bind=engine)
+    
+    db = TestingSessionLocal()
+    try:
+        seed_enumerators(db)
+    finally:
+        db.close()
+        
     yield
+    
     Base.metadata.drop_all(bind=engine)
+
 
 @pytest.fixture
 def client():

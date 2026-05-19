@@ -2,11 +2,11 @@ from pydantic import BaseModel
 from typing import Optional
 
 class ContractCreateSchema(BaseModel):
-    guarantee: str
+    guarantee_type: str
     rental_deposit: float
     rent_amount: float
     room_name: Optional[str] = None
-    acting: Optional[str] = "active"
+    status: Optional[str] = "active"
     file_path: Optional[str] = None
     property_key: str
     tenant_key: str
@@ -15,11 +15,11 @@ class ContractCreateSchema(BaseModel):
     bail_insurance_key: Optional[str] = None
 
 class ContractUpdateSchema(BaseModel):
-    guarantee: str
+    guarantee_type: str
     rental_deposit: float
     rent_amount: float
     room_name: Optional[str] = None
-    acting: Optional[str] = "active"
+    status: Optional[str] = "active"
     file_path: Optional[str] = None
     property_key: str
     tenant_key: str

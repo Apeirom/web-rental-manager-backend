@@ -171,3 +171,12 @@ class InvalidCredentialsError(BaseAppException):
             message_en="Invalid email or password",
             message_pt="Email ou senha inválidos"
         )
+
+class InvalidEnumeratorError(BaseAppException):
+    def __init__(self, enumerator_name: str, invalid_value: str):
+        super().__init__(
+            status_code=400,
+            code="RM-0018",
+            message_en=f"The value '{invalid_value}' is not valid for the enumerator of {enumerator_name}.",
+            message_pt=f"O valor '{invalid_value}' não é válido para o enumerador de {enumerator_name}."
+        )

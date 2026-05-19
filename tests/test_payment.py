@@ -9,7 +9,7 @@ def base_contract_key(auth_client):
     property_key = prop_res.json()["key"]
 
     contract_payload = {
-        "guarantee": "deposit",
+        "guarantee_type": "deposit",
         "rental_deposit": 1000.00,
         "rent_amount": 1000.00,
         "property_key": property_key,
