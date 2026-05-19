@@ -6,7 +6,7 @@ def test_create_contract_success(auth_client):
     property_key = prop_res.json()["key"]
 
     payload = {
-        "guarantee": "deposit",
+        "guarantee_type": "deposit",
         "rental_deposit": 3000.00,
         "rent_amount": 1000.00,
         "room_name": "Suite A",
@@ -14,6 +14,8 @@ def test_create_contract_success(auth_client):
         "tenant_key": tenant_key
     }
     response = auth_client.post("/contracts", json=payload)
+    print(response)
+    print(response.json())
     
     assert response.status_code == 201
     assert response.json()["property"]["key"] == property_key
@@ -25,7 +27,7 @@ def test_create_contract_invalid_property(auth_client):
     tenant_key = tenant_res.json()["key"]
 
     payload = {
-        "guarantee": "deposit",
+        "guarantee_type": "deposit",
         "rental_deposit": 1500.00,
         "rent_amount": 500.00,
         "property_key": "non-existent-property-key",
@@ -48,7 +50,7 @@ def test_get_contract_by_key(auth_client):
     property_key = prop_res.json()["key"]
 
     payload = {
-        "guarantee": "deposit",
+        "guarantee_type": "deposit",
         "rental_deposit": 2000.00,
         "rent_amount": 1000.00,
         "property_key": property_key,
@@ -69,7 +71,7 @@ def test_update_contract(auth_client):
     property_key = prop_res.json()["key"]
 
     payload = {
-        "guarantee": "deposit",
+        "guarantee_type": "deposit",
         "rental_deposit": 1000.00,
         "rent_amount": 500.00,
         "property_key": property_key,
@@ -79,12 +81,12 @@ def test_update_contract(auth_client):
     contract_key = create_res.json()["key"]
 
     update_payload = {
-        "guarantee": "deposit",
+        "guarantee_type": "deposit",
         "rental_deposit": 1200.00,
         "rent_amount": 600.00,
         "property_key": property_key,
         "tenant_key": tenant_key,
-        "acting": "active"
+        "status": "active"
     }
     update_res = auth_client.put(f"/contracts/{contract_key}", json=update_payload)
     assert update_res.status_code == 200
@@ -98,7 +100,7 @@ def test_delete_contract(auth_client):
     property_key = prop_res.json()["key"]
 
     payload = {
-        "guarantee": "deposit",
+        "guarantee_type": "deposit",
         "rental_deposit": 500.00,
         "rent_amount": 500.00,
         "property_key": property_key,
