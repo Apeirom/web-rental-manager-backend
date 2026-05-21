@@ -44,6 +44,9 @@ from src.schemas.extract_schema import ExtractCreateSchema, ExtractUpdateSchema
 from src.dto.extract_dto import ExtractDTO
 from src.controller.extract_controller import ExtractController
 
+from src.controller.analysis_controller import AnalysisController
+from src.dto.analysis_dto import IncomeTaxRowDTO
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -359,6 +362,25 @@ def delete_extract(extract_key: str, db: Session = Depends(get_db)):
 
 
 
+analysis_router = APIRouter(
+    prefix="/analyses",
+    tags=["10. Análises (Analyses)"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@analysis_router.get("/income-tax", response_model=list[IncomeTaxRowDTO])
+def get_income_tax(
+    start_year: int, 
+    start_month: int, 
+    end_year: int, 
+    end_month: int, 
+    db: Session = Depends(get_db)
+):
+    controller = AnalysisController(db)
+    return controller.generate_income_tax_report(start_year, start_month, end_year, end_month)
+
+
+
 app.include_router(auth_router)
 app.include_router(tenant_router)
 app.include_router(property_router)
@@ -368,3 +390,4 @@ app.include_router(bail_insurance_router)
 app.include_router(contract_router)
 app.include_router(payment_router)
 app.include_router(extract_router)
+app.include_router(analysis_router)
