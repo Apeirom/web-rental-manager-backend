@@ -1,5 +1,6 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from src.models.extract_model import ExtractModel
+from src.models.contract_model import ContractModel
 
 class ExtractRepository:
     def __init__(self, db: Session):
@@ -26,6 +27,19 @@ class ExtractRepository:
 
     def get_all(self) -> list[ExtractModel]:
         return self.db.query(ExtractModel).all()
+    
+    def get_by_date_range_with_relations(self, start_year: int, start_month: int, end_year: int, end_month: int) -> list[ExtractModel]:
+        start_val = (start_year * 12) + start_month
+        end_val = (end_year * 12) + end_month
+
+        return self.db.query(ExtractModel).options(
+            joinedload(ExtractModel.contract).joinedload(ContractModel.tenant),
+            joinedload(ExtractModel.contract).joinedload(ContractModel.property),
+            joinedload(ExtractModel.contract).joinedload(ContractModel.real_estate)
+        ).filter(
+            ((ExtractModel.year_ref * 12) + ExtractModel.month_ref) >= start_val,
+            ((ExtractModel.year_ref * 12) + ExtractModel.month_ref) <= end_val
+        ).order_by(ExtractModel.year_ref.asc(), ExtractModel.month_ref.asc()).all()
 
     def update(self, extract_model: ExtractModel, month_ref: int, year_ref: int, rent_amount: float, receipt_path: str | None, iptu: float, water: float, agreement: float, contract_id: int) -> ExtractModel:
         extract_model.month_ref = month_ref
