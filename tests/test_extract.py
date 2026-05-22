@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 
 @pytest.fixture
 def base_contract_key(auth_client):
@@ -95,3 +96,25 @@ def test_delete_extract(auth_client, base_contract_key):
 
     delete_res = auth_client.delete(f"/extracts/{extract_key}")
     assert delete_res.status_code == 204
+
+def test_upload_extract_receipt(auth_client, base_contract_key):
+    payload = {
+        "month_ref": 10,
+        "year_ref": 2026,
+        "rent_amount": 1000.00,
+        "iptu": 150.00,
+        "water": 50.00,
+        "contract_key": base_contract_key
+    }
+    create_res = auth_client.post("/extracts", json=payload)
+    extract_key = create_res.json()["key"]
+
+    with patch("src.connectors.supabase_storage_connector.SupabaseStorage.upload_file") as mock_upload:
+        mock_upload.return_value = f"https://fake-supabase.com/extracts/{extract_key}_v1.pdf"
+
+        file_data = {"file": ("comprovante.pdf", b"Conteudo em bytes do comprovante", "application/pdf")}
+        response = auth_client.post(f"/extracts/{extract_key}/upload-receipt", files=file_data)
+
+        assert response.status_code == 200
+        assert response.json()["receipt_path"] == f"https://fake-supabase.com/extracts/{extract_key}_v1.pdf"
+        mock_upload.assert_called_once()

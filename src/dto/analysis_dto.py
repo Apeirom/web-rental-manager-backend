@@ -3,8 +3,8 @@ from pydantic import BaseModel
 class IncomeTaxRowDTO(BaseModel):
     reference_date: str
     tenant_name: str
-    document: str
-    document_type: str
+    tenat_document_number: str
+    tenat_document_type: str
     property_details: str
     rent_amount: float
     iptu: float
