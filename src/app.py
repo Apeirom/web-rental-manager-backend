@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, status, Request, HTTPException, APIRouter
+from fastapi import FastAPI, Depends, status, Request, HTTPException, APIRouter, UploadFile, File
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -294,6 +294,20 @@ def delete_contract(contract_key: str, db: Session = Depends(get_db)):
     controller = ContractController(db)
     controller.delete_contract(contract_key)
 
+@contract_router.post("/{contract_key}/upload-document", response_model=ContractDTO)
+def upload_contract_document(
+    contract_key: str, 
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_db)
+):
+    controller = ContractController(db)
+    file_bytes = file.file.read()
+    return controller.upload_document(
+        contract_key=contract_key, 
+        file_bytes=file_bytes, 
+        content_type=file.content_type
+    )
+
 
 
 payment_router = APIRouter(
@@ -359,6 +373,20 @@ def update_extract(extract_key: str, schema: ExtractUpdateSchema, db: Session = 
 def delete_extract(extract_key: str, db: Session = Depends(get_db)):
     controller = ExtractController(db)
     controller.delete_extract(extract_key)
+
+@extract_router.post("/{extract_key}/upload-receipt", response_model=ExtractDTO)
+def upload_extract_receipt(
+    extract_key: str, 
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_db)
+):
+    controller = ExtractController(db)
+    file_bytes = file.file.read()
+    return controller.upload_receipt(
+        extract_key=extract_key, 
+        file_bytes=file_bytes, 
+        content_type=file.content_type
+    )
 
 
 

@@ -21,7 +21,6 @@ class ContractModel(Base):
     guarantee_type_id = Column(Integer, ForeignKey("guarantee_types.id"), nullable=False)
     status_id = Column(Integer, ForeignKey("contract_statuses.id"), nullable=False)
 
-
     property = relationship("PropertyModel")
     tenant = relationship("TenantModel")
     real_estate = relationship("RealEstateModel")
