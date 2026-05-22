@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 def test_create_contract_success(auth_client):
     tenant_res = auth_client.post("/tenants", json={"name": "John Tenant", "document_number": "123.456.789-10"})
     tenant_key = tenant_res.json()["key"]
@@ -111,3 +113,31 @@ def test_delete_contract(auth_client):
 
     delete_res = auth_client.delete(f"/contracts/{contract_key}")
     assert delete_res.status_code == 204
+
+def test_upload_contract_document(auth_client):
+    tenant_res = auth_client.post("/tenants", json={"name": "Upload Tenant", "document_number": "111.111.111-11"})
+    tenant_key = tenant_res.json()["key"]
+
+    prop_res = auth_client.post("/properties", json={"property_name": "Upload Prop", "owner_name": "Owner", "address": "123", "room_count": 1})
+    property_key = prop_res.json()["key"]
+
+    payload = {
+        "guarantee_type": "deposit",
+        "rental_deposit": 1000.00,
+        "rent_amount": 500.00,
+        "property_key": property_key,
+        "tenant_key": tenant_key
+    }
+    create_res = auth_client.post("/contracts", json=payload)
+    contract_key = create_res.json()["key"]
+
+    with patch("src.connectors.supabase_storage_connector.SupabaseStorage.upload_file") as mock_upload:
+        mock_upload.return_value = f"https://fake-supabase.com/contracts/{contract_key}_v1.pdf"
+
+        file_data = {"file": ("contrato_falso.pdf", b"Conteudo em bytes do PDF", "application/pdf")}
+        response = auth_client.post(f"/contracts/{contract_key}/upload-document", files=file_data)
+
+        assert response.status_code == 200
+        assert response.json()["file_path"] == f"https://fake-supabase.com/contracts/{contract_key}_v1.pdf"
+        
+        mock_upload.assert_called_once()

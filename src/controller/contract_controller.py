@@ -11,6 +11,7 @@ from src.models.contract_status_model import ContractStatusModel
 from src.schemas.contract_schema import ContractCreateSchema, ContractUpdateSchema
 from src.dto.contract_dto import ContractDTO
 from src.errors.custom_errors import ContractNotFoundError, ContractInvalidRelationError, InvalidEnumeratorError
+from src.connectors.supabase_storage_connector import SupabaseStorage
 
 class ContractController:
     def __init__(self, db: Session):
@@ -23,7 +24,6 @@ class ContractController:
         self.enumerator_repository = EnumeratorRepository(db)
 
     def create_contract(self, schema: ContractCreateSchema) -> ContractDTO:
-        
         guarantee_type_model = self.enumerator_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
         if not guarantee_type_model:
             raise InvalidEnumeratorError(enumerator_name="Garantia", invalid_value=schema.guarantee_type)
@@ -84,7 +84,6 @@ class ContractController:
         return [ContractDTO.model_validate(e) for e in entities]
 
     def update_contract(self, contract_key: str, schema: ContractUpdateSchema) -> ContractDTO:
-
         guarantee_type_model = self.enumerator_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
         if not guarantee_type_model:
             raise InvalidEnumeratorError(enumerator_name="Garantia", invalid_value=schema.guarantee_type)
@@ -144,3 +143,25 @@ class ContractController:
         if not contract_model:
             raise ContractNotFoundError(contract_key=contract_key)
         self.contract_repository.delete(contract_model)
+
+    def upload_document(self, contract_key: str, file_bytes: bytes, content_type: str) -> ContractDTO:
+        contract_model = self.contract_repository.get_by_key(contract_key)
+        if not contract_model:
+            raise ContractNotFoundError(contract_key=contract_key)
+
+        storage = SupabaseStorage(bucket_name="contracts")
+        
+        extension = ".pdf" if "pdf" in content_type else ""
+        file_name = f"{contract_key}_v1{extension}"
+
+        file_url = storage.upload_file(
+            file_bytes=file_bytes,
+            file_name=file_name,
+            content_type=content_type
+        )
+
+        contract_model.file_path = file_url
+        self.contract_repository.db.commit()
+        self.contract_repository.db.refresh(contract_model)
+
+        return ContractDTO.model_validate(contract_model)

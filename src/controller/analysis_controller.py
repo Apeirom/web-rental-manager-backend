@@ -28,17 +28,17 @@ class AnalysisController:
             commission_amount = base_income * commission_rate
             net_income = base_income - commission_amount
 
-            document = tenant.document_number
-            doc_type = "CNPJ" if len(document) > 14 else "CPF"
+            tenat_document_number = tenant.document_number
+            doc_type = "CNPJ" if len(tenat_document_number) > 14 else "CPF"
             
             room_info = f" - {contract.room_name}" if contract.room_name else ""
 
             row = IncomeTaxRowDTO(
                 reference_date=f"{extract.month_ref:02d}/{extract.year_ref}",
                 tenant_name=tenant.name,
-                document=document,
-                document_type=doc_type,
-                property_details=f"{property_obj.property_name}{room_info}",
+                tenat_document_number=tenat_document_number,
+                tenat_document_type=doc_type,
+                property_details=f"{property_obj.property_name}-{room_info}",
                 rent_amount=rent,
                 iptu=iptu,
                 water=water,
