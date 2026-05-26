@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from src.models.contract_model import ContractModel
 from src.models.guarantee_type_model import GuaranteeTypeModel
 from src.models.contract_status_model import ContractStatusModel
@@ -56,3 +57,33 @@ class ContractRepository:
     def delete(self, contract_model: ContractModel) -> None:
         self.db.delete(contract_model)
         self.db.commit()
+
+    def get_paginated(
+        self,
+        skip: int = 0,
+        limit: int = 10,
+        room_name: str | None = None,
+        property_name: str | None = None,
+        tenant_name: str | None = None,
+        real_estate_name: str | None = None,
+        status: str | None = None
+    ) -> list[ContractModel]:
+        
+        query = self.db.query(ContractModel)
+
+        if room_name:
+            query = query.filter(ContractModel.room_name.ilike(f"%{room_name}%"))
+        
+        if property_name:
+            query = query.join(ContractModel.property).filter(PropertyModel.property_name.ilike(f"%{property_name}%"))
+            
+        if tenant_name:
+            query = query.join(ContractModel.tenant).filter(TenantModel.name.ilike(f"%{tenant_name}%"))
+            
+        if real_estate_name:
+            query = query.join(ContractModel.real_estate).filter(RealEstateModel.name.ilike(f"%{real_estate_name}%"))
+
+        if status:
+            query = query.join(ContractModel.status).filter(ContractStatusModel.enumerator == status)
+
+        return query.offset(skip).limit(limit).all()

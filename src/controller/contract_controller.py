@@ -144,6 +144,21 @@ class ContractController:
             raise ContractNotFoundError(contract_key=contract_key)
         self.contract_repository.delete(contract_model)
 
+    def get_paginated_contracts(
+        self, 
+        skip: int, limit: int, 
+        room_name: str = None, property_name: str = None, 
+        tenant_name: str = None, real_estate_name: str = None, 
+        status: str = None
+    ) -> list[ContractDTO]:
+        entities = self.repository.get_paginated(
+            skip, limit, room_name, property_name, tenant_name, real_estate_name, status
+        )
+        contracts = []
+        for entity in entities:
+            contracts.append(ContractDTO.model_validate(entity))
+        return contracts
+
     def upload_document(self, contract_key: str, file_bytes: bytes, content_type: str) -> ContractDTO:
         contract_model = self.contract_repository.get_by_key(contract_key)
         if not contract_model:
