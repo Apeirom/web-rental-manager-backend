@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, status, Request, HTTPException, APIRouter, UploadFile, File
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from src.utils.database import get_db, engine
 from src.models.base import Base
@@ -306,6 +307,22 @@ def upload_contract_document(
         contract_key=contract_key, 
         file_bytes=file_bytes, 
         content_type=file.content_type
+    )
+
+@contract_router.get("", response_model=list[ContractDTO])
+def list_contracts(
+    skip: int = 0, 
+    limit: int = 10,
+    room_name: Optional[str] = None,
+    property_name: Optional[str] = None,
+    tenant_name: Optional[str] = None,
+    real_estate_name: Optional[str] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    controller = ContractController(db)
+    return controller.get_paginated_contracts(
+        skip, limit, room_name, property_name, tenant_name, real_estate_name, status
     )
 
 
