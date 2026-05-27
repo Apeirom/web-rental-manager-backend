@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, status, Request, HTTPException, APIRouter, UploadFile, File
 from fastapi.security import HTTPBearer
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -61,6 +62,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
+origins = [
+    "http://localhost:3000",
+    "https://seusite.vercel.app",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.add_middleware(AuthMiddleware)
 
