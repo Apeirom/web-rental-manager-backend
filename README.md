@@ -30,3 +30,5 @@ O projeto segue os princípios de **Clean Architecture** e **Separation of Conce
 ├── 📁 schemas/      # Contratos de Entrada (Validação de payload via Pydantic)
 ├── 📁 utils/        # Ferramentas auxiliares (Segurança, Conexão com o BD)
 └── 📄 app.py        # Ponto de entrada, definição das rotas e injeção de dependências
+
+uvicorn src.app:app --reload
