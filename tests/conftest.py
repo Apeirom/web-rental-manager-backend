@@ -6,7 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from src.app import app
 from src.models.base import Base
-from src.utils.database import get_db
+from src.database.config import get_db
 from src.utils.security import create_access_token
 from tests.utils.database_setup import seed_enumerators
 
@@ -26,9 +26,12 @@ def override_get_db():
     db = TestingSessionLocal()
     try:
         yield db
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
     finally:
         db.close()
-
 
 app.dependency_overrides[get_db] = override_get_db
 

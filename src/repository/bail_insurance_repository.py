@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
 from src.models.bail_insurance_model import BailInsuranceModel
+from src.repository.base_repository import BaseRepository
 
-class BailInsuranceRepository:
+class BailInsuranceRepository(BaseRepository):
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(self, value: float, validity: str, insurance_company: str) -> BailInsuranceModel:
         bail_insurance = BailInsuranceModel(
@@ -12,8 +13,7 @@ class BailInsuranceRepository:
             insurance_company=insurance_company
         )
         self.db.add(bail_insurance)
-        self.db.commit()
-        self.db.refresh(bail_insurance)
+        self.db.flush()
         return bail_insurance
 
     def get_by_key(self, bail_insurance_key: str) -> BailInsuranceModel | None:
@@ -26,10 +26,8 @@ class BailInsuranceRepository:
         bail_insurance_model.value = value
         bail_insurance_model.validity = validity
         bail_insurance_model.insurance_company = insurance_company
-        self.db.commit()
-        self.db.refresh(bail_insurance_model)
+        self.db.flush()
         return bail_insurance_model
 
     def delete(self, bail_insurance_model: BailInsuranceModel) -> None:
         self.db.delete(bail_insurance_model)
-        self.db.commit()

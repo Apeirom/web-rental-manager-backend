@@ -1,15 +1,16 @@
 from sqlalchemy.orm import Session
 from src.models.tenant_model import TenantModel
+from src.repository.base_repository import BaseRepository 
 
-class TenantRepository:
+
+class TenantRepository(BaseRepository):
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(self, name: str, document_number: str) -> TenantModel:
         tenant = TenantModel(name=name, document_number=document_number)
         self.db.add(tenant)
-        self.db.commit()
-        self.db.refresh(tenant)
+        self.db.flush()
         return tenant
 
     def get_by_key(self, tenant_key: str) -> TenantModel | None:
@@ -24,10 +25,9 @@ class TenantRepository:
     def update(self, tenant_model: TenantModel, name: str, document_number: str) -> TenantModel:
         tenant_model.name = name
         tenant_model.document_number = document_number
-        self.db.commit()
-        self.db.refresh(tenant_model)
+        self.db.flush()
         return tenant_model
 
     def delete(self, tenant_model: TenantModel) -> None:
         self.db.delete(tenant_model)
-        self.db.commit()
+        self.db.flush()

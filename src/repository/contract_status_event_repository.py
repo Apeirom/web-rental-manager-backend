@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
-from src.repository.enumerator_repository import EnumeratorRepository
+from src.repository.base_repository import BaseRepository 
 from src.models.contract_status_event_model import ContractStatusEventModel
 from src.models.contract_model import ContractModel
 from src.models.contract_status_model import ContractStatusModel
 
-class ContractStatusEventRepository(EnumeratorRepository):
+
+class ContractStatusEventRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
         
@@ -15,10 +16,9 @@ class ContractStatusEventRepository(EnumeratorRepository):
             user_data=user_data
         )
         self.db.add(event)
-        self.db.commit()
-        self.db.refresh(event)
+        self.db.flush()
         return event
 
     def delete(self, event_model: ContractStatusEventModel) -> None:
         self.db.delete(event_model)
-        self.db.commit()
+        self.db.flush()
