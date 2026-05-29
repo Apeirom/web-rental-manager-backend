@@ -8,7 +8,7 @@ from src.connectors.supabase_storage_connector import SupabaseStorage
 
 class ExtractController:
     def __init__(self, db: Session):
-        self.repository = ExtractRepository(db)
+        self.extract_repository = ExtractRepository(db)
         self.contract_repo = ContractRepository(db)
 
     def _calculate_financials(self, schema, contract_model):
@@ -40,7 +40,7 @@ class ExtractController:
 
         admin_fee, net_transfer = self._calculate_financials(schema, contract_model)
 
-        extract_model = self.repository.create(
+        extract_model = self.extract_repository.create(
             month_ref=schema.month_ref,
             year_ref=schema.year_ref,
             rent_amount=schema.rent_amount,
@@ -60,17 +60,17 @@ class ExtractController:
         return ExtractDTO.model_validate(extract_model)
 
     def get_extract(self, extract_key: str) -> ExtractDTO:
-        extract_model = self.repository.get_by_key(extract_key)
+        extract_model = self.extract_repository.get_by_key(extract_key)
         if not extract_model:
             raise ExtractNotFoundError(extract_key=extract_key)
         return ExtractDTO.model_validate(extract_model)
 
     def get_all_extracts(self) -> list[ExtractDTO]:
-        entities = self.repository.get_all()
+        entities = self.extract_repository.get_all()
         return [ExtractDTO.model_validate(e) for e in entities]
 
     def update_extract(self, extract_key: str, schema: ExtractUpdateSchema) -> ExtractDTO:
-        extract_model = self.repository.get_by_key(extract_key)
+        extract_model = self.extract_repository.get_by_key(extract_key)
         if not extract_model:
             raise ExtractNotFoundError(extract_key=extract_key)
 
@@ -80,7 +80,7 @@ class ExtractController:
 
         admin_fee, net_transfer = self._calculate_financials(schema, contract_model)
 
-        updated_model = self.repository.update(
+        updated_model = self.extract_repository.update(
             extract_model=extract_model,
             month_ref=schema.month_ref,
             year_ref=schema.year_ref,
@@ -101,13 +101,13 @@ class ExtractController:
         return ExtractDTO.model_validate(updated_model)
 
     def delete_extract(self, extract_key: str) -> None:
-        extract_model = self.repository.get_by_key(extract_key)
+        extract_model = self.extract_repository.get_by_key(extract_key)
         if not extract_model:
             raise ExtractNotFoundError(extract_key=extract_key)
-        self.repository.delete(extract_model)
+        self.extract_repository.delete(extract_model)
 
     def upload_receipt(self, extract_key: str, file_bytes: bytes, content_type: str) -> ExtractDTO:
-        extract_model = self.repository.get_by_key(extract_key)
+        extract_model = self.extract_repository.get_by_key(extract_key)
         if not extract_model:
             raise ExtractNotFoundError(extract_key=extract_key)
 
@@ -123,7 +123,7 @@ class ExtractController:
         )
 
         extract_model.receipt_path = file_url
-        self.repository.db.commit()
-        self.repository.db.refresh(extract_model)
+        self.extract_repository.db.commit()
+        self.extract_repository.db.refresh(extract_model)
 
         return ExtractDTO.model_validate(extract_model)

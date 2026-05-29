@@ -180,3 +180,12 @@ class InvalidEnumeratorError(BaseAppException):
             message_en=f"The value '{invalid_value}' is not valid for the enumerator of {enumerator_name}.",
             message_pt=f"O valor '{invalid_value}' não é válido para o enumerador de {enumerator_name}."
         )
+
+class NotProvidedCredentials (BaseAppException):
+    def __init__(self):
+        super().__init__(
+            status_code=401,
+            code="RM-0019",
+            message_en="Credentials not provided or invalid.",
+            message_pt="Credenciais não fornecidas ou inválidas"
+        )

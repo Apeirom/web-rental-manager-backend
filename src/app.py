@@ -5,13 +5,14 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from src.utils.database import get_db, engine
+from src.utils.security import get_user_info_by_token
 from src.models.base import Base
 from src.middlewares.auth_middleware import AuthMiddleware
 
 from src.controller.health_controller import HealthController
 
 from src.schemas.user_schema import UserCreateSchema, UserLoginSchema
-from src.dto.user_dto import UserDTO, TokenDTO
+from src.dto.user_dto import UserDTO, LoginResponseDTO
 from src.controller.user_controller import UserController
 
 from src.schemas.tenant_schema import TenantCreateSchema, TenantUpdateSchema
@@ -104,7 +105,7 @@ def register_user(schema: UserCreateSchema, request: Request, db: Session = Depe
     controller = UserController(db)
     return controller.register(schema)
 
-@auth_router.post("/auth/login", response_model=TokenDTO)
+@auth_router.post("/auth/login", response_model=LoginResponseDTO)
 def login(schema: UserLoginSchema, db: Session = Depends(get_db)):
     controller = UserController(db)
     return controller.login(schema)
@@ -284,14 +285,13 @@ contract_router = APIRouter(
 )
 
 @contract_router.post("", response_model=ContractDTO, status_code=status.HTTP_201_CREATED)
-def create_contract(schema: ContractCreateSchema, db: Session = Depends(get_db)):
+def create_contract(
+    schema: ContractCreateSchema, 
+    db: Session = Depends(get_db),
+    current_user_data: dict = Depends(get_user_info_by_token)
+):
     controller = ContractController(db)
-    return controller.create_contract(schema)
-
-@contract_router.get("", response_model=list[ContractDTO])
-def list_contracts(db: Session = Depends(get_db)):
-    controller = ContractController(db)
-    return controller.get_all_contracts()
+    return controller.create_contract(schema, current_user_data)
 
 @contract_router.get("/{contract_key}", response_model=ContractDTO)
 def get_contract(contract_key: str, db: Session = Depends(get_db)):
@@ -299,9 +299,14 @@ def get_contract(contract_key: str, db: Session = Depends(get_db)):
     return controller.get_contract(contract_key)
 
 @contract_router.put("/{contract_key}", response_model=ContractDTO)
-def update_contract(contract_key: str, schema: ContractUpdateSchema, db: Session = Depends(get_db)):
+def update_contract(
+    contract_key: str, 
+    schema: ContractUpdateSchema, 
+    db: Session = Depends(get_db),
+    current_user_data: dict = Depends(get_user_info_by_token)
+):
     controller = ContractController(db)
-    return controller.update_contract(contract_key, schema)
+    return controller.update_contract(contract_key, schema, current_user_data)
 
 @contract_router.delete("/{contract_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_contract(contract_key: str, db: Session = Depends(get_db)):
