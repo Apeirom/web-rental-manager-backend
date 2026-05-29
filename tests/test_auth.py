@@ -13,8 +13,9 @@ def test_login_success(client, auth_client):
     response = client.post("/auth/login", json=login_payload)
     
     assert response.status_code == 200
-    assert "access_token" in response.json()
-    assert response.json()["token_type"] == "bearer"
+    assert "token" in response.json()
+    assert "access_token" in response.json()["token"]
+    assert response.json()["token"]["token_type"] == "bearer"
 
 def test_login_invalid_password(client, auth_client):
     payload = {
@@ -54,4 +55,4 @@ def test_access_protected_route_with_invalid_token(client):
     response = client.get("/tenants")
     
     assert response.status_code == 401
-    assert response.json()["detail"] == "Invalid or expired token"
+    assert response.json()["detail"] == "Invalid token"

@@ -6,10 +6,10 @@ from src.errors.custom_errors import PropertyNotFoundError
 
 class PropertyController:
     def __init__(self, db: Session):
-        self.repository = PropertyRepository(db)
+        self.property_repository = PropertyRepository(db)
 
     def create_property(self, schema: PropertyCreateSchema) -> PropertyDTO:
-        property_model = self.repository.create(
+        property_model = self.property_repository.create(
             property_name=schema.property_name,
             owner_name=schema.owner_name,
             address=schema.address,
@@ -18,21 +18,21 @@ class PropertyController:
         return PropertyDTO.model_validate(property_model)
 
     def get_property(self, property_key: str) -> PropertyDTO:
-        property_model = self.repository.get_by_key(property_key)
+        property_model = self.property_repository.get_by_key(property_key)
         if not property_model:
             raise PropertyNotFoundError(property_key=property_key)
         return PropertyDTO.model_validate(property_model)
 
     def get_all_properties(self) -> list[PropertyDTO]:
-        properties = self.repository.get_all()
+        properties = self.property_repository.get_all()
         return [PropertyDTO.model_validate(p) for p in properties]
 
     def update_property(self, property_key: str, schema: PropertyUpdateSchema) -> PropertyDTO:
-        property_model = self.repository.get_by_key(property_key)
+        property_model = self.property_repository.get_by_key(property_key)
         if not property_model:
             raise PropertyNotFoundError(property_key=property_key)
             
-        updated_model = self.repository.update(
+        updated_model = self.property_repository.update(
             property_model=property_model,
             property_name=schema.property_name,
             owner_name=schema.owner_name,
@@ -42,7 +42,7 @@ class PropertyController:
         return PropertyDTO.model_validate(updated_model)
 
     def delete_property(self, property_key: str) -> None:
-        property_model = self.repository.get_by_key(property_key)
+        property_model = self.property_repository.get_by_key(property_key)
         if not property_model:
             raise PropertyNotFoundError(property_key=property_key)
-        self.repository.delete(property_model)
+        self.property_repository.delete(property_model)

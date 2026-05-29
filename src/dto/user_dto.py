@@ -11,3 +11,7 @@ class UserDTO(BaseModel):
 class TokenDTO(BaseModel):
     access_token: str
     token_type: str
+
+class LoginResponseDTO(BaseModel):
+    token: TokenDTO
+    user: UserDTO
