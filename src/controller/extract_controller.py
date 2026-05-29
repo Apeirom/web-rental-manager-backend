@@ -123,7 +123,6 @@ class ExtractController:
         )
 
         extract_model.receipt_path = file_url
-        self.extract_repository.db.commit()
-        self.extract_repository.db.refresh(extract_model)
+        self.extract_repository.db.flush()
 
         return ExtractDTO.model_validate(extract_model)

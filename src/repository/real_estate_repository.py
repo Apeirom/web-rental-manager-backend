@@ -1,9 +1,11 @@
 from sqlalchemy.orm import Session
 from src.models.real_estate_model import RealEstateModel
+from src.repository.base_repository import BaseRepository 
 
-class RealEstateRepository:
+
+class RealEstateRepository(BaseRepository):
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(self, name: str, cnpj: str, address: str, commission: float, phone: str) -> RealEstateModel:
         real_estate = RealEstateModel(
@@ -14,8 +16,7 @@ class RealEstateRepository:
             phone=phone
         )
         self.db.add(real_estate)
-        self.db.commit()
-        self.db.refresh(real_estate)
+        self.db.flush()
         return real_estate
 
     def get_by_key(self, real_estate_key: str) -> RealEstateModel | None:
@@ -33,10 +34,9 @@ class RealEstateRepository:
         real_estate_model.address = address
         real_estate_model.commission = commission
         real_estate_model.phone = phone
-        self.db.commit()
-        self.db.refresh(real_estate_model)
+        self.db.flush()
         return real_estate_model
 
     def delete(self, real_estate_model: RealEstateModel) -> None:
         self.db.delete(real_estate_model)
-        self.db.commit()
+        self.db.flush()

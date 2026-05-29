@@ -1,10 +1,12 @@
 from sqlalchemy.orm import Session, joinedload
 from src.models.extract_model import ExtractModel
 from src.models.contract_model import ContractModel
+from src.repository.base_repository import BaseRepository 
 
-class ExtractRepository:
+
+class ExtractRepository(BaseRepository):
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(self, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, receipt_path: str | None, contract_id: int) -> ExtractModel:
         extract = ExtractModel(
@@ -25,8 +27,7 @@ class ExtractRepository:
             contract_id=contract_id
         )
         self.db.add(extract)
-        self.db.commit()
-        self.db.refresh(extract)
+        self.db.flush()
         return extract
 
     def get_by_key(self, extract_key: str) -> ExtractModel | None:
@@ -65,10 +66,9 @@ class ExtractRepository:
         extract_model.receipt_path = receipt_path
         extract_model.contract_id = contract_id
         
-        self.db.commit()
-        self.db.refresh(extract_model)
+        self.db.flush()
         return extract_model
 
     def delete(self, extract_model: ExtractModel) -> None:
         self.db.delete(extract_model)
-        self.db.commit()
+        self.db.flush()

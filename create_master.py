@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from src.utils.database import SessionLocal
+from src.database.config import SessionLocal
 from src.models.user_model import UserModel
 from src.utils.security import get_password_hash
 

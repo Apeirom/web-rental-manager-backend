@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-from src.repository.enumerator_repository import EnumeratorRepository
 from src.repository.contract_repository import ContractRepository
 from src.repository.contract_status_event_repository import ContractStatusEventRepository
 from src.repository.property_repository import PropertyRepository
@@ -23,14 +22,13 @@ class ContractController:
         self.real_estate_repository = RealEstateRepository(db)
         self.guarantor_repository = GuarantorRepository(db)
         self.bail_insurance_repository = BailInsuranceRepository(db)
-        self.enumerator_repository = EnumeratorRepository(db)
 
     def create_contract(self, schema: ContractCreateSchema, current_user_data: dict) -> ContractDTO:
-        guarantee_type_model = self.enumerator_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
+        guarantee_type_model = self.contract_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
         if not guarantee_type_model:
             raise InvalidEnumeratorError(enumerator_name="Garantia", invalid_value=schema.guarantee_type)
 
-        contract_status_model = self.enumerator_repository.get_enumerator_model(ContractStatusModel, schema.status)
+        contract_status_model = self.contract_repository.get_enumerator_model(ContractStatusModel, schema.status)
         if not contract_status_model:
             raise InvalidEnumeratorError(enumerator_name="Status do Contrato", invalid_value=schema.status)
 
@@ -93,11 +91,11 @@ class ContractController:
         return [ContractDTO.model_validate(e) for e in entities]
 
     def update_contract(self, contract_key: str, schema: ContractUpdateSchema, current_user_data: dict) -> ContractDTO:
-        guarantee_type_model = self.enumerator_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
+        guarantee_type_model = self.contract_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
         if not guarantee_type_model:
             raise InvalidEnumeratorError(enumerator_name="Garantia", invalid_value=schema.guarantee_type)
 
-        contract_status_model = self.enumerator_repository.get_enumerator_model(ContractStatusModel, schema.status)
+        contract_status_model = self.contract_repository.get_enumerator_model(ContractStatusModel, schema.status)
         if not contract_status_model:
             raise InvalidEnumeratorError(enumerator_name="Status do Contrato", invalid_value=schema.status)
 
@@ -192,7 +190,6 @@ class ContractController:
         )
 
         contract_model.file_path = file_url
-        self.contract_repository.db.commit()
-        self.contract_repository.db.refresh(contract_model)
+        self.contract_repository.db.flush()
 
         return ContractDTO.model_validate(contract_model)

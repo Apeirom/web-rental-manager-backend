@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import Optional
 
-from src.utils.database import get_db, engine
+from src.database.config import get_db, engine
 from src.utils.security import get_user_info_by_token
 from src.models.base import Base
 from src.middlewares.auth_middleware import AuthMiddleware
