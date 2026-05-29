@@ -4,7 +4,7 @@ from src.repository.contract_repository import ContractRepository
 from src.schemas.extract_schema import ExtractCreateSchema, ExtractUpdateSchema
 from src.dto.extract_dto import ExtractDTO
 from src.errors.custom_errors import ExtractNotFoundError, ExtractInvalidRelationError
-from src.connectors.supabase_storage_connector import SupabaseStorage
+from src.connectors.S3_storage_connector import S3StorageConnector
 
 class ExtractController:
     def __init__(self, db: Session):
@@ -111,7 +111,7 @@ class ExtractController:
         if not extract_model:
             raise ExtractNotFoundError(extract_key=extract_key)
 
-        storage = SupabaseStorage(bucket_name="extracts")
+        storage = S3StorageConnector(bucket_name="extracts")
         
         extension = ".pdf" if "pdf" in content_type else ""
         file_name = f"{extract_key}_v1{extension}"
