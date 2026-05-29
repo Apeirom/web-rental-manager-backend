@@ -1,15 +1,16 @@
 from sqlalchemy.orm import Session
 from src.models.user_model import UserModel
+from src.repository.base_repository import BaseRepository 
 
-class UserRepository:
+
+class UserRepository(BaseRepository):
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(self, name: str, email: str, hashed_password: str) -> UserModel:
         user = UserModel(name=name, email=email, hashed_password=hashed_password)
         self.db.add(user)
-        self.db.commit()
-        self.db.refresh(user)
+        self.db.flush()
         return user
 
     def get_by_key(self, user_key: str) -> UserModel | None:

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from src.repository.base_repository import BaseRepository
 from src.models.contract_model import ContractModel
 from src.models.guarantee_type_model import GuaranteeTypeModel
 from src.models.contract_status_model import ContractStatusModel
@@ -9,9 +9,9 @@ from src.models.real_estate_model import RealEstateModel
 from src.models.guarantor_model import GuarantorModel
 from src.models.bail_insurance_model import BailInsuranceModel
 
-class ContractRepository:
+class ContractRepository(BaseRepository):
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(self, guarantee_type: GuaranteeTypeModel, rental_deposit: float, rent_amount: float, room_name: str | None, status: ContractStatusModel, file_path: str | None, property: PropertyModel, tenant: TenantModel, real_estate: RealEstateModel | None, guarantor: GuarantorModel | None, bail_insurance: BailInsuranceModel | None) -> ContractModel:
         contract = ContractModel(
@@ -28,8 +28,7 @@ class ContractRepository:
             bail_insurance=bail_insurance
         )
         self.db.add(contract)
-        self.db.commit()
-        self.db.refresh(contract)
+        self.db.flush()
         return contract
 
     def get_by_key(self, contract_key: str) -> ContractModel | None:
@@ -50,13 +49,12 @@ class ContractRepository:
         contract_model.real_estate = real_estate
         contract_model.guarantor = guarantor
         contract_model.bail_insurance = bail_insurance
-        self.db.commit()
-        self.db.refresh(contract_model)
+        self.db.flush()
         return contract_model
 
     def delete(self, contract_model: ContractModel) -> None:
         self.db.delete(contract_model)
-        self.db.commit()
+        self.db.flush()
 
     def get_paginated(
         self,
