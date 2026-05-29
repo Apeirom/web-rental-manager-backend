@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from src.repository.enumerator_repository import EnumeratorRepository
 from src.repository.contract_repository import ContractRepository
+from src.repository.contract_status_event_repository import ContractStatusEventRepository
 from src.repository.property_repository import PropertyRepository
 from src.repository.tenant_repository import TenantRepository
 from src.repository.real_estate_repository import RealEstateRepository
@@ -16,6 +17,7 @@ from src.connectors.supabase_storage_connector import SupabaseStorage
 class ContractController:
     def __init__(self, db: Session):
         self.contract_repository = ContractRepository(db)
+        self.contract_status_event_repository = ContractStatusEventRepository(db)
         self.property_repository = PropertyRepository(db)
         self.tenant_repository = TenantRepository(db)
         self.real_estate_repository = RealEstateRepository(db)
@@ -23,7 +25,7 @@ class ContractController:
         self.bail_insurance_repository = BailInsuranceRepository(db)
         self.enumerator_repository = EnumeratorRepository(db)
 
-    def create_contract(self, schema: ContractCreateSchema) -> ContractDTO:
+    def create_contract(self, schema: ContractCreateSchema, current_user_data: dict) -> ContractDTO:
         guarantee_type_model = self.enumerator_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
         if not guarantee_type_model:
             raise InvalidEnumeratorError(enumerator_name="Garantia", invalid_value=schema.guarantee_type)
@@ -71,6 +73,13 @@ class ContractController:
             guarantor=guarantor_model,
             bail_insurance=bail_insurance_model
         )
+        
+        self.contract_status_event_repository.create(
+            contract=contract_model,
+            status=contract_status_model,
+            user_data=current_user_data
+        )
+
         return ContractDTO.model_validate(contract_model)
 
     def get_contract(self, contract_key: str) -> ContractDTO:
@@ -83,7 +92,7 @@ class ContractController:
         entities = self.contract_repository.get_all()
         return [ContractDTO.model_validate(e) for e in entities]
 
-    def update_contract(self, contract_key: str, schema: ContractUpdateSchema) -> ContractDTO:
+    def update_contract(self, contract_key: str, schema: ContractUpdateSchema, current_user_data: dict) -> ContractDTO:
         guarantee_type_model = self.enumerator_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
         if not guarantee_type_model:
             raise InvalidEnumeratorError(enumerator_name="Garantia", invalid_value=schema.guarantee_type)
@@ -136,6 +145,13 @@ class ContractController:
             guarantor=guarantor_model,
             bail_insurance=bail_insurance_model
         )
+
+        self.contract_status_event_repository.create(
+            contract=updated_model,
+            status=contract_status_model,
+            user_data=current_user_data
+        )
+
         return ContractDTO.model_validate(updated_model)
 
     def delete_contract(self, contract_key: str) -> None:
@@ -151,7 +167,7 @@ class ContractController:
         tenant_name: str = None, real_estate_name: str = None, 
         status: str = None
     ) -> list[ContractDTO]:
-        entities = self.repository.get_paginated(
+        entities = self.contract_repository.get_paginated(
             skip, limit, room_name, property_name, tenant_name, real_estate_name, status
         )
         contracts = []
