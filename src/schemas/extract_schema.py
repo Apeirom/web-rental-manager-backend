@@ -4,7 +4,7 @@ from typing import Optional
 class ExtractBaseSchema(BaseModel):
     month_ref: int
     year_ref: int
-    receipt_path: Optional[str] = None
+    file_path: Optional[str] = None
 
     rent_amount: float = 0.0
     iptu: float = 0.0

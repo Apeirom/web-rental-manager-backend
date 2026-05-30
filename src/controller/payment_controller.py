@@ -19,7 +19,7 @@ class PaymentController:
             payment_date=schema.payment_date,
             month_ref=schema.month_ref,
             year_ref=schema.year_ref,
-            receipt_path=schema.receipt_path,
+            file_path=schema.file_path,
             contract_id=contract_model.id
         )
         return PaymentDTO.model_validate(payment_model)
@@ -48,7 +48,7 @@ class PaymentController:
             payment_date=schema.payment_date,
             month_ref=schema.month_ref,
             year_ref=schema.year_ref,
-            receipt_path=schema.receipt_path,
+            file_path=schema.file_path,
             contract_id=contract_model.id
         )
         return PaymentDTO.model_validate(updated_model)

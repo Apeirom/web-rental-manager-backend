@@ -20,7 +20,7 @@ class ExtractDTO(BaseModel):
     bank_fee: float
     net_transfer: float
     
-    receipt_path: Optional[str]
+    file_path: Optional[str]
     contract: ContractDTO
 
     model_config = ConfigDict(from_attributes=True)

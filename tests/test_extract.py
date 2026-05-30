@@ -116,5 +116,5 @@ def test_upload_extract_receipt(auth_client, base_contract_key):
         response = auth_client.post(f"/extracts/{extract_key}/upload-receipt", files=file_data)
 
         assert response.status_code == 200
-        assert response.json()["receipt_path"] == f"https://fake-supabase.com/extracts/{extract_key}_v1.pdf"
+        assert response.json()["file_path"] == f"https://fake-supabase.com/extracts/{extract_key}_v1.pdf"
         mock_upload.assert_called_once()
