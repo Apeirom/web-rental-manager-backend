@@ -20,7 +20,7 @@ O projeto segue os princípios de **Clean Architecture** e **Separation of Conce
 
 ```text
 📁 src/
-├── 📁 connectors/   # Integrações com serviços externos (ex: SupabaseStorage)
+├── 📁 connectors/   # Integrações com serviços externos (ex: S3StorageConnector)
 ├── 📁 controller/   # Coração do sistema: Regras de negócio e orquestração
 ├── 📁 dto/          # Data Transfer Objects: Formatação dos dados de saída para o Frontend
 ├── 📁 errors/       # Tratamento de exceções customizadas e padronizadas

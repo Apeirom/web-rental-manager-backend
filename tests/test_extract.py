@@ -109,7 +109,7 @@ def test_upload_extract_receipt(auth_client, base_contract_key):
     create_res = auth_client.post("/extracts", json=payload)
     extract_key = create_res.json()["key"]
 
-    with patch("src.connectors.supabase_storage_connector.SupabaseStorage.upload_file") as mock_upload:
+    with patch("src.connectors.S3_storage_connector.S3StorageConnector.upload_file") as mock_upload:
         mock_upload.return_value = f"https://fake-supabase.com/extracts/{extract_key}_v1.pdf"
 
         file_data = {"file": ("comprovante.pdf", b"Conteudo em bytes do comprovante", "application/pdf")}
