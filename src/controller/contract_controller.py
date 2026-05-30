@@ -132,6 +132,8 @@ class ContractController:
             if not bail_insurance_model:
                 raise ContractInvalidRelationError(entity_name="BailInsurance", key=schema.bail_insurance_key)
 
+        old_status_enumerator = contract_model.status.enumerator
+
         updated_model = self.contract_repository.update(
             contract_model=contract_model,
             guarantee_type=guarantee_type_model,
@@ -147,7 +149,7 @@ class ContractController:
             bail_insurance=bail_insurance_model
         )
 
-        if contract_model.status.enumerator != schema.status:
+        if old_status_enumerator != schema.status:
             self.contract_status_event_repository.create(
                 contract=updated_model,
                 status=contract_status_model,
