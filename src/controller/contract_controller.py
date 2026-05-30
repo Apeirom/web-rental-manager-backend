@@ -22,6 +22,7 @@ class ContractController:
         self.real_estate_repository = RealEstateRepository(db)
         self.guarantor_repository = GuarantorRepository(db)
         self.bail_insurance_repository = BailInsuranceRepository(db)
+        self.S3_connector = S3StorageConnector(bucket_name="contracts")
 
     def create_contract(self, schema: ContractCreateSchema, current_user_data: dict) -> ContractDTO:
         guarantee_type_model = self.contract_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
@@ -84,11 +85,13 @@ class ContractController:
         contract_model = self.contract_repository.get_by_key(contract_key)
         if not contract_model:
             raise ContractNotFoundError(contract_key=contract_key)
-        return ContractDTO.model_validate(contract_model)
+    
+        contract_dto = ContractDTO.model_validate(contract_model)
 
-    def get_all_contracts(self) -> list[ContractDTO]:
-        entities = self.contract_repository.get_all()
-        return [ContractDTO.model_validate(e) for e in entities]
+        if contract_dto.file_path:
+                contract_dto.file_path = self.S3_connector.get_signed_url(contract_dto.file_path)
+
+        return contract_dto
 
     def update_contract(self, contract_key: str, schema: ContractUpdateSchema, current_user_data: dict) -> ContractDTO:
         guarantee_type_model = self.contract_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
@@ -167,25 +170,26 @@ class ContractController:
         tenant_name: str = None, real_estate_name: str = None, 
         status: str = None
     ) -> list[ContractDTO]:
-        entities = self.contract_repository.get_paginated(
+        contract_models = self.contract_repository.get_paginated(
             skip, limit, room_name, property_name, tenant_name, real_estate_name, status
         )
         contracts = []
-        for entity in entities:
-            contracts.append(ContractDTO.model_validate(entity))
+        for contract in contract_models:
+            contract_dto = ContractDTO.model_validate(contract)
+            if contract_dto.file_path:
+                contract_dto.file_path = self.S3_connector.get_signed_url(contract.file_path)
+            contracts.append(contract_dto)
         return contracts
 
     def upload_document(self, contract_key: str, file_bytes: bytes, content_type: str) -> ContractDTO:
         contract_model = self.contract_repository.get_by_key(contract_key)
         if not contract_model:
             raise ContractNotFoundError(contract_key=contract_key)
-
-        storage = S3StorageConnector(bucket_name="contracts")
         
         extension = ".pdf" if "pdf" in content_type else ""
         file_name = f"{contract_key}_v1{extension}"
 
-        file_url = storage.upload_file(
+        file_url = self.S3_connector.upload_file(
             file_bytes=file_bytes,
             file_name=file_name,
             content_type=content_type

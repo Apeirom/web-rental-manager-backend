@@ -10,6 +10,7 @@ class ExtractController:
     def __init__(self, db: Session):
         self.extract_repository = ExtractRepository(db)
         self.contract_repo = ContractRepository(db)
+        self.S3_connector = S3StorageConnector(bucket_name="extracts")
 
     def _calculate_financials(self, schema, contract_model):
         commission_rate = 0.0
@@ -54,7 +55,7 @@ class ExtractController:
             bank_fee=schema.bank_fee,
             administration_fee=admin_fee,
             net_transfer=net_transfer,
-            receipt_path=schema.receipt_path,
+            file_path=schema.file_path,
             contract_id=contract_model.id
         )
         return ExtractDTO.model_validate(extract_model)
@@ -63,11 +64,23 @@ class ExtractController:
         extract_model = self.extract_repository.get_by_key(extract_key)
         if not extract_model:
             raise ExtractNotFoundError(extract_key=extract_key)
-        return ExtractDTO.model_validate(extract_model)
+        
+        extract_dto = ExtractDTO.model_validate(extract_model)
+        if extract_dto.file_path:
+            extract_dto.file_path = self.S3_connector.get_signed_url(extract_dto.file_path)
+        return extract_dto
 
     def get_all_extracts(self) -> list[ExtractDTO]:
-        entities = self.extract_repository.get_all()
-        return [ExtractDTO.model_validate(e) for e in entities]
+        extract_models = self.extract_repository.get_all()
+
+        extracts = []
+        for extract in extract_models:
+            extract_dto = ExtractDTO.model_validate(extract)
+            if extract_dto.file_path:
+                extract_dto.file_path = self.S3_connector.get_signed_url(extract_dto.file_path)
+            extracts.append(extract_dto)
+
+        return extracts
 
     def update_extract(self, extract_key: str, schema: ExtractUpdateSchema) -> ExtractDTO:
         extract_model = self.extract_repository.get_by_key(extract_key)
@@ -95,7 +108,7 @@ class ExtractController:
             bank_fee=schema.bank_fee,
             administration_fee=admin_fee,
             net_transfer=net_transfer,
-            receipt_path=schema.receipt_path,
+            file_path=schema.file_path,
             contract_id=contract_model.id
         )
         return ExtractDTO.model_validate(updated_model)
@@ -110,19 +123,17 @@ class ExtractController:
         extract_model = self.extract_repository.get_by_key(extract_key)
         if not extract_model:
             raise ExtractNotFoundError(extract_key=extract_key)
-
-        storage = S3StorageConnector(bucket_name="extracts")
         
         extension = ".pdf" if "pdf" in content_type else ""
         file_name = f"{extract_key}_v1{extension}"
 
-        file_url = storage.upload_file(
+        file_url = self.S3_connector.upload_file(
             file_bytes=file_bytes,
             file_name=file_name,
             content_type=content_type
         )
 
-        extract_model.receipt_path = file_url
+        extract_model.file_path = file_url
         self.extract_repository.db.flush()
 
         return ExtractDTO.model_validate(extract_model)

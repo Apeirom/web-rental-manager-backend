@@ -25,7 +25,7 @@ class ExtractModel(Base):
 
     net_transfer = Column(Float, default=0.0, nullable=False)
 
-    receipt_path = Column(String, nullable=True)
+    file_path = Column(String, nullable=True)
 
     contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
     contract = relationship("ContractModel")

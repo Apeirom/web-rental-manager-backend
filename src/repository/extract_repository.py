@@ -8,7 +8,7 @@ class ExtractRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def create(self, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, receipt_path: str | None, contract_id: int) -> ExtractModel:
+    def create(self, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, file_path: str | None, contract_id: int) -> ExtractModel:
         extract = ExtractModel(
             month_ref=month_ref,
             year_ref=year_ref,
@@ -23,7 +23,7 @@ class ExtractRepository(BaseRepository):
             bank_fee=bank_fee,
             administration_fee=administration_fee,
             net_transfer=net_transfer,
-            receipt_path=receipt_path,
+            file_path=file_path,
             contract_id=contract_id
         )
         self.db.add(extract)
@@ -49,7 +49,7 @@ class ExtractRepository(BaseRepository):
             ((ExtractModel.year_ref * 12) + ExtractModel.month_ref) <= end_val
         ).order_by(ExtractModel.year_ref.asc(), ExtractModel.month_ref.asc()).all()
 
-    def update(self, extract_model: ExtractModel, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, receipt_path: str | None, contract_id: int) -> ExtractModel:
+    def update(self, extract_model: ExtractModel, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, file_path: str | None, contract_id: int) -> ExtractModel:
         extract_model.month_ref = month_ref
         extract_model.year_ref = year_ref
         extract_model.rent_amount = rent_amount
@@ -63,7 +63,7 @@ class ExtractRepository(BaseRepository):
         extract_model.bank_fee = bank_fee
         extract_model.administration_fee = administration_fee
         extract_model.net_transfer = net_transfer
-        extract_model.receipt_path = receipt_path
+        extract_model.file_path = file_path
         extract_model.contract_id = contract_id
         
         self.db.flush()

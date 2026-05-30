@@ -11,7 +11,7 @@ class PaymentModel(Base):
     payment_date = Column(String, nullable=False)
     month_ref = Column(Integer, nullable=False)
     year_ref = Column(Integer, nullable=False)
-    receipt_path = Column(String, nullable=True)
+    file_path = Column(String, nullable=True)
 
     contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
     contract = relationship("ContractModel")

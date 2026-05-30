@@ -7,12 +7,12 @@ class PaymentRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def create(self, payment_date: str, month_ref: int, year_ref: int, receipt_path: str | None, contract_id: int) -> PaymentModel:
+    def create(self, payment_date: str, month_ref: int, year_ref: int, file_path: str | None, contract_id: int) -> PaymentModel:
         payment = PaymentModel(
             payment_date=payment_date,
             month_ref=month_ref,
             year_ref=year_ref,
-            receipt_path=receipt_path,
+            file_path=file_path,
             contract_id=contract_id
         )
         self.db.add(payment)
@@ -25,11 +25,11 @@ class PaymentRepository(BaseRepository):
     def get_all(self) -> list[PaymentModel]:
         return self.db.query(PaymentModel).all()
 
-    def update(self, payment_model: PaymentModel, payment_date: str, month_ref: int, year_ref: int, receipt_path: str | None, contract_id: int) -> PaymentModel:
+    def update(self, payment_model: PaymentModel, payment_date: str, month_ref: int, year_ref: int, file_path: str | None, contract_id: int) -> PaymentModel:
         payment_model.payment_date = payment_date
         payment_model.month_ref = month_ref
         payment_model.year_ref = year_ref
-        payment_model.receipt_path = receipt_path
+        payment_model.file_path = file_path
         payment_model.contract_id = contract_id
         self.db.flush()
         return payment_model
