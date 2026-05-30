@@ -11,7 +11,7 @@ from src.models.contract_status_model import ContractStatusModel
 from src.schemas.contract_schema import ContractCreateSchema, ContractUpdateSchema
 from src.dto.contract_dto import ContractDTO
 from src.errors.custom_errors import ContractNotFoundError, ContractInvalidRelationError, InvalidEnumeratorError
-from src.connectors.supabase_storage_connector import SupabaseStorage
+from src.connectors.S3_storage_connector import S3StorageConnector
 
 class ContractController:
     def __init__(self, db: Session):
@@ -178,7 +178,7 @@ class ContractController:
         if not contract_model:
             raise ContractNotFoundError(contract_key=contract_key)
 
-        storage = SupabaseStorage(bucket_name="contracts")
+        storage = S3StorageConnector(bucket_name="contracts")
         
         extension = ".pdf" if "pdf" in content_type else ""
         file_name = f"{contract_key}_v1{extension}"

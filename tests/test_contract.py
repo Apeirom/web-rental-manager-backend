@@ -131,7 +131,7 @@ def test_upload_contract_document(auth_client):
     create_res = auth_client.post("/contracts", json=payload)
     contract_key = create_res.json()["key"]
 
-    with patch("src.connectors.supabase_storage_connector.SupabaseStorage.upload_file") as mock_upload:
+    with patch("src.connectors.S3_storage_connector.S3StorageConnector.upload_file") as mock_upload:
         mock_upload.return_value = f"https://fake-supabase.com/contracts/{contract_key}_v1.pdf"
 
         file_data = {"file": ("contrato_falso.pdf", b"Conteudo em bytes do PDF", "application/pdf")}
