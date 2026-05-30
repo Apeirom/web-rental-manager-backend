@@ -7,7 +7,7 @@ class PaymentDTO(BaseModel):
     payment_date: str
     month_ref: int
     year_ref: int
-    receipt_path: Optional[str]
+    file_path: Optional[str]
     contract: ContractDTO
 
     model_config = ConfigDict(from_attributes=True)
