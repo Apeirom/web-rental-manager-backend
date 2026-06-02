@@ -43,6 +43,32 @@ def test_create_payment_invalid_contract(auth_client):
     assert response.status_code == 400
     assert response.json()["detail"]["code"] == "RM-0012"
 
+def test_get_all_payments(auth_client, base_contract_key):
+    payload = {
+        "payment_date": "2026-05-17",
+        "month_ref": 5,
+        "year_ref": 2026,
+        "contract_key": base_contract_key
+    }
+    auth_client.post("/payments", json=payload)
+
+    response = auth_client.get("/payments")
+    assert response.status_code == 200
+    res_json = response.json()
+    assert "total" in res_json
+    assert "skip" in res_json
+    assert "limit" in res_json
+    assert isinstance(res_json["data"], list)
+    assert len(res_json["data"]) >= 1
+
+def test_get_all_payments_with_params(auth_client, base_contract_key):
+    response = auth_client.get("/payments?skip=0&limit=5&only_active_contracts=true")
+    assert response.status_code == 200
+    res_json = response.json()
+    assert res_json["skip"] == 0
+    assert res_json["limit"] == 5
+    assert isinstance(res_json["data"], list)
+
 def test_get_payment_by_key(auth_client, base_contract_key):
     payload = {
         "payment_date": "2026-07-17",

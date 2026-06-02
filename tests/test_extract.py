@@ -46,6 +46,32 @@ def test_create_extract_invalid_contract(auth_client):
     assert response.status_code == 400
     assert response.json()["detail"]["code"] == "RM-0014"
 
+def test_get_all_extracts(auth_client, base_contract_key):
+    payload = {
+        "month_ref": 6,
+        "year_ref": 2027,
+        "rent_amount": 1000.00,
+        "contract_key": base_contract_key
+    }
+    auth_client.post("/extracts", json=payload)
+
+    response = auth_client.get("/extracts")
+    assert response.status_code == 200
+    res_json = response.json()
+    assert "total" in res_json
+    assert "skip" in res_json
+    assert "limit" in res_json
+    assert isinstance(res_json["data"], list)
+    assert len(res_json["data"]) >= 1
+
+def test_get_all_extracts_with_params(auth_client, base_contract_key):
+    response = auth_client.get("/extracts?skip=0&limit=5&only_active_contracts=true")
+    assert response.status_code == 200
+    res_json = response.json()
+    assert res_json["skip"] == 0
+    assert res_json["limit"] == 5
+    assert isinstance(res_json["data"], list)
+
 def test_get_extract_by_key(auth_client, base_contract_key):
     payload = {
         "month_ref": 3,

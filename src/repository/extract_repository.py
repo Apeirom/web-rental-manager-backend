@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
-from src.models.extract_model import ExtractModel
-from src.models.contract_model import ContractModel
+from sqlalchemy import or_
+from src.models import ExtractModel, ContractModel, PropertyModel, TenantModel, ContractStatusModel
 from src.repository.base_repository import BaseRepository 
-
 
 class ExtractRepository(BaseRepository):
     def __init__(self, db: Session):
@@ -33,8 +32,35 @@ class ExtractRepository(BaseRepository):
     def get_by_key(self, extract_key: str) -> ExtractModel | None:
         return self.db.query(ExtractModel).filter(ExtractModel.key == extract_key).first()
 
-    def get_all(self) -> list[ExtractModel]:
-        return self.db.query(ExtractModel).all()
+    def get_paginated(
+        self,
+        skip: int = 0,
+        limit: int = 10,
+        search_term: str | None = None,
+        only_active_contracts: bool = False
+    ) -> tuple[int, list[ExtractModel]]:
+        
+        query = self.db.query(ExtractModel)
+
+        if search_term:
+            query = query.join(ExtractModel.contract).join(ContractModel.property).join(ContractModel.tenant).filter(
+                or_(
+                    PropertyModel.property_name.ilike(f"%{search_term}%"),
+                    TenantModel.name.ilike(f"%{search_term}%")
+                )
+            )
+            query = query.reset_joinpoint()
+
+        if only_active_contracts:
+            query = query.join(ExtractModel.contract).join(ContractStatusModel, ContractModel.status_id == ContractStatusModel.id).filter(
+                ContractStatusModel.enumerator == "active"
+            )
+            query = query.reset_joinpoint()
+
+        total_count = query.count()
+        items = query.offset(skip).limit(limit).all()
+
+        return total_count, items
     
     def get_by_date_range_with_relations(self, start_year: int, start_month: int, end_year: int, end_month: int) -> list[ExtractModel]:
         start_val = (start_year * 12) + start_month

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from src.models.guarantor_model import GuarantorModel
+from sqlalchemy import or_
+from src.models import GuarantorModel, ContractModel, ContractStatusModel
 from src.repository.base_repository import BaseRepository 
 
 
@@ -19,8 +20,42 @@ class GuarantorRepository(BaseRepository):
     def get_by_document(self, document_number: str) -> GuarantorModel | None:
         return self.db.query(GuarantorModel).filter(GuarantorModel.document_number == document_number).first()
 
-    def get_all(self) -> list[GuarantorModel]:
-        return self.db.query(GuarantorModel).all()
+    def get_paginated(
+        self,
+        skip: int = 0,
+        limit: int = 10,
+        search_term: str | None = None,
+        name: str | None = None,
+        document_number: str | None = None,
+        only_active_contracts: bool = False
+    ) -> tuple[int, list[GuarantorModel]]:
+        
+        query = self.db.query(GuarantorModel)
+
+        if search_term:
+            query = query.filter(
+                or_(
+                    GuarantorModel.name.ilike(f"%{search_term}%"),
+                    GuarantorModel.document_number.ilike(f"%{search_term}%")
+                )
+            )
+
+        if name:
+            query = query.filter(GuarantorModel.name.ilike(f"%{name}%"))
+            
+        if document_number:
+            query = query.filter(GuarantorModel.document_number.ilike(f"%{document_number}%"))
+
+        if only_active_contracts:
+            query = query.join(ContractModel, ContractModel.guarantor_id == GuarantorModel.id) \
+                         .join(ContractStatusModel, ContractModel.status_id == ContractStatusModel.id) \
+                         .filter(ContractStatusModel.enumerator == "active") \
+                         .distinct()
+
+        total_count = query.count()
+        items = query.offset(skip).limit(limit).all()
+
+        return total_count, items
 
     def update(self, guarantor_model: GuarantorModel, name: str, document_number: str) -> GuarantorModel:
         guarantor_model.name = name

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from src.models.property_model import PropertyModel
+from sqlalchemy import or_
+from src.models import PropertyModel, ContractModel, ContractStatusModel
 from src.repository.base_repository import BaseRepository 
 
 
@@ -21,8 +22,41 @@ class PropertyRepository(BaseRepository):
     def get_by_key(self, property_key: str) -> PropertyModel | None:
         return self.db.query(PropertyModel).filter(PropertyModel.key == property_key).first()
 
-    def get_all(self) -> list[PropertyModel]:
-        return self.db.query(PropertyModel).all()
+    def get_paginated(
+        self, 
+        skip: int = 0, 
+        limit: int = 10, 
+        search_term: str | None = None,
+        property_name: str | None = None,
+        owner_name: str | None = None,
+        only_active_contracts: bool = False
+    ) -> tuple[int, list[PropertyModel]]:
+        
+        query = self.db.query(PropertyModel)
+
+        if search_term:
+            query = query.filter(
+                or_(
+                    PropertyModel.property_name.ilike(f"%{search_term}%"),
+                    PropertyModel.owner_name.ilike(f"%{search_term}%")
+                )
+            )
+
+        if property_name:
+            query = query.filter(PropertyModel.property_name.ilike(f"%{property_name}%"))
+        if owner_name:
+            query = query.filter(PropertyModel.owner_name.ilike(f"%{owner_name}%"))
+
+        if only_active_contracts:
+            query = query.join(ContractModel, ContractModel.property_id == PropertyModel.id) \
+                         .join(ContractStatusModel, ContractModel.status_id == ContractStatusModel.id) \
+                         .filter(ContractStatusModel.enumerator == "active") \
+                         .distinct()
+
+        total_count = query.count()
+        items = query.offset(skip).limit(limit).all()
+
+        return total_count, items
 
     def update(self, property_model: PropertyModel, property_name: str, owner_name: str, address: str, room_count: int) -> PropertyModel:
         property_model.property_name = property_name

@@ -50,9 +50,10 @@ from src.controller.extract_controller import ExtractController
 from src.controller.analysis_controller import AnalysisController
 from src.dto.analysis_dto import IncomeTaxRowDTO
 
+from src.dto.paginated_response import PaginatedResponseDTO
+
 
 Base.metadata.create_all(bind=engine)
-
 
 bearer_scheme = HTTPBearer()
 
@@ -123,10 +124,18 @@ def create_tenant(schema: TenantCreateSchema, db: Session = Depends(get_db)):
     controller = TenantController(db)
     return controller.create_tenant(schema)
 
-@tenant_router.get("", response_model=list[TenantDTO])
-def list_tenants(db: Session = Depends(get_db)):
+@tenant_router.get("", response_model=PaginatedResponseDTO[TenantDTO])
+def list_tenants(
+    skip: int = 0, 
+    limit: int = 10, 
+    search_term: Optional[str] = None,
+    name: Optional[str] = None,
+    document_number: Optional[str] = None,
+    only_active_contracts: bool = False,
+    db: Session = Depends(get_db)
+):
     controller = TenantController(db)
-    return controller.get_all_tenants()
+    return controller.get_paginated_tenants(skip, limit, search_term, name, document_number, only_active_contracts)
 
 @tenant_router.get("/{tenant_key}", response_model=TenantDTO)
 def get_tenant(tenant_key: str, db: Session = Depends(get_db)):
@@ -157,10 +166,18 @@ def create_property(schema: PropertyCreateSchema, db: Session = Depends(get_db))
     controller = PropertyController(db)
     return controller.create_property(schema)
 
-@property_router.get("", response_model=list[PropertyDTO])
-def list_properties(db: Session = Depends(get_db)):
+@property_router.get("", response_model=PaginatedResponseDTO[PropertyDTO])
+def list_properties(
+    skip: int = 0, 
+    limit: int = 10, 
+    search_term: Optional[str] = None,
+    property_name: Optional[str] = None,
+    owner_name: Optional[str] = None,
+    only_active_contracts: bool = False,
+    db: Session = Depends(get_db)
+):
     controller = PropertyController(db)
-    return controller.get_all_properties()
+    return controller.get_paginated_properties(skip, limit, search_term, property_name, owner_name, only_active_contracts)
 
 @property_router.get("/{property_key}", response_model=PropertyDTO)
 def get_property(property_key: str, db: Session = Depends(get_db)):
@@ -190,10 +207,18 @@ def create_real_estate(schema: RealEstateCreateSchema, db: Session = Depends(get
     controller = RealEstateController(db)
     return controller.create_real_estate(schema)
 
-@real_estate_router.get("", response_model=list[RealEstateDTO])
-def list_real_estates(db: Session = Depends(get_db)):
+@real_estate_router.get("", response_model=PaginatedResponseDTO[RealEstateDTO])
+def list_real_estates(
+    skip: int = 0, 
+    limit: int = 10, 
+    search_term: Optional[str] = None,
+    name: Optional[str] = None,
+    cnpj: Optional[str] = None,
+    only_active_contracts: bool = False,
+    db: Session = Depends(get_db)
+):
     controller = RealEstateController(db)
-    return controller.get_all_real_estates()
+    return controller.get_paginated_real_estates(skip, limit, search_term, name, cnpj, only_active_contracts)
 
 @real_estate_router.get("/{real_estate_key}", response_model=RealEstateDTO)
 def get_real_estate(real_estate_key: str, db: Session = Depends(get_db)):
@@ -223,10 +248,18 @@ def create_guarantor(schema: GuarantorCreateSchema, db: Session = Depends(get_db
     controller = GuarantorController(db)
     return controller.create_guarantor(schema)
 
-@guarantor_router.get("", response_model=list[GuarantorDTO])
-def list_guarantors(db: Session = Depends(get_db)):
+@guarantor_router.get("", response_model=PaginatedResponseDTO[GuarantorDTO])
+def list_guarantors(
+    skip: int = 0, 
+    limit: int = 10, 
+    search_term: Optional[str] = None,
+    name: Optional[str] = None,
+    document_number: Optional[str] = None,
+    only_active_contracts: bool = False,
+    db: Session = Depends(get_db)
+):
     controller = GuarantorController(db)
-    return controller.get_all_guarantors()
+    return controller.get_paginated_guarantors(skip, limit, search_term, name, document_number, only_active_contracts)
 
 @guarantor_router.get("/{guarantor_key}", response_model=GuarantorDTO)
 def get_guarantor(guarantor_key: str, db: Session = Depends(get_db)):
@@ -256,10 +289,18 @@ def create_bail_insurance(schema: BailInsuranceCreateSchema, db: Session = Depen
     controller = BailInsuranceController(db)
     return controller.create_bail_insurance(schema)
 
-@bail_insurance_router.get("", response_model=list[BailInsuranceDTO])
-def list_bail_insurances(db: Session = Depends(get_db)):
+@bail_insurance_router.get("", response_model=PaginatedResponseDTO[BailInsuranceDTO])
+def list_bail_insurances(
+    skip: int = 0, 
+    limit: int = 10, 
+    search_term: Optional[str] = None,
+    insurance_company: Optional[str] = None,
+    validity: Optional[str] = None,
+    only_active_contracts: bool = False,
+    db: Session = Depends(get_db)
+):
     controller = BailInsuranceController(db)
-    return controller.get_all_bail_insurances()
+    return controller.get_paginated_bail_insurances(skip, limit, search_term, insurance_company, validity, only_active_contracts)
 
 @bail_insurance_router.get("/{bail_insurance_key}", response_model=BailInsuranceDTO)
 def get_bail_insurance(bail_insurance_key: str, db: Session = Depends(get_db)):
@@ -327,10 +368,11 @@ def upload_contract_document(
         content_type=file.content_type
     )
 
-@contract_router.get("", response_model=list[ContractDTO])
+@contract_router.get("", response_model=PaginatedResponseDTO[ContractDTO])
 def list_contracts(
     skip: int = 0, 
     limit: int = 10,
+    search_term: Optional[str] = None,
     room_name: Optional[str] = None,
     property_name: Optional[str] = None,
     tenant_name: Optional[str] = None,
@@ -340,7 +382,7 @@ def list_contracts(
 ):
     controller = ContractController(db)
     return controller.get_paginated_contracts(
-        skip, limit, room_name, property_name, tenant_name, real_estate_name, status
+        skip, limit, search_term, room_name, property_name, tenant_name, real_estate_name, status
     )
 
 
@@ -356,10 +398,16 @@ def create_payment(schema: PaymentCreateSchema, db: Session = Depends(get_db)):
     controller = PaymentController(db)
     return controller.create_payment(schema)
 
-@payment_router.get("", response_model=list[PaymentDTO])
-def list_payments(db: Session = Depends(get_db)):
+@payment_router.get("", response_model=PaginatedResponseDTO[PaymentDTO])
+def list_payments(
+    skip: int = 0, 
+    limit: int = 10, 
+    search_term: Optional[str] = None,
+    only_active_contracts: bool = False,
+    db: Session = Depends(get_db)
+):
     controller = PaymentController(db)
-    return controller.get_all_payments()
+    return controller.get_paginated_payments(skip, limit, search_term, only_active_contracts)
 
 @payment_router.get("/{payment_key}", response_model=PaymentDTO)
 def get_payment(payment_key: str, db: Session = Depends(get_db)):
@@ -389,10 +437,16 @@ def create_extract(schema: ExtractCreateSchema, db: Session = Depends(get_db)):
     controller = ExtractController(db)
     return controller.create_extract(schema)
 
-@extract_router.get("", response_model=list[ExtractDTO])
-def list_extracts(db: Session = Depends(get_db)):
+@extract_router.get("", response_model=PaginatedResponseDTO[ExtractDTO])
+def list_extracts(
+    skip: int = 0, 
+    limit: int = 10, 
+    search_term: Optional[str] = None,
+    only_active_contracts: bool = False,
+    db: Session = Depends(get_db)
+):
     controller = ExtractController(db)
-    return controller.get_all_extracts()
+    return controller.get_paginated_extracts(skip, limit, search_term, only_active_contracts)
 
 @extract_router.get("/{extract_key}", response_model=ExtractDTO)
 def get_extract(extract_key: str, db: Session = Depends(get_db)):

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
-from src.models.tenant_model import TenantModel
-from src.repository.base_repository import BaseRepository 
+from sqlalchemy import or_
+from src.repository.base_repository import BaseRepository
+from src.models import TenantModel, ContractModel, ContractStatusModel
 
 
 class TenantRepository(BaseRepository):
@@ -19,8 +20,42 @@ class TenantRepository(BaseRepository):
     def get_by_document(self, document_number: str) -> TenantModel | None:
         return self.db.query(TenantModel).filter(TenantModel.document_number == document_number).first()
 
-    def get_all(self) -> list[TenantModel]:
-        return self.db.query(TenantModel).all()
+    def get_paginated(
+        self, 
+        skip: int = 0, 
+        limit: int = 10, 
+        search_term: str | None = None,
+        name: str | None = None,
+        document_number: str | None = None,
+        only_active_contracts: bool = False
+    ) -> tuple[int, list[TenantModel]]:
+        
+        query = self.db.query(TenantModel)
+
+        if search_term:
+            query = query.filter(
+                or_(
+                    TenantModel.name.ilike(f"%{search_term}%"),
+                    TenantModel.document_number.ilike(f"%{search_term}%")
+                )
+            )
+
+        if name:
+            query = query.filter(TenantModel.name.ilike(f"%{name}%"))
+        if document_number:
+            query = query.filter(TenantModel.document_number.ilike(f"%{document_number}%"))
+
+        
+        if only_active_contracts:
+            query = query.join(ContractModel, ContractModel.tenant_id == TenantModel.id) \
+                         .join(ContractStatusModel, ContractModel.status_id == ContractStatusModel.id) \
+                         .filter(ContractStatusModel.enumerator == "active") \
+                         .distinct()
+
+        total_count = query.count()
+        items = query.offset(skip).limit(limit).all()
+
+        return total_count, items
 
     def update(self, tenant_model: TenantModel, name: str, document_number: str) -> TenantModel:
         tenant_model.name = name

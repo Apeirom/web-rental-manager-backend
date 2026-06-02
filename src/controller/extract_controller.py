@@ -3,6 +3,7 @@ from src.repository.extract_repository import ExtractRepository
 from src.repository.contract_repository import ContractRepository
 from src.schemas.extract_schema import ExtractCreateSchema, ExtractUpdateSchema
 from src.dto.extract_dto import ExtractDTO
+from src.dto.paginated_response import PaginatedResponseDTO
 from src.errors.custom_errors import ExtractNotFoundError, ExtractInvalidRelationError
 from src.connectors.S3_storage_connector import S3StorageConnector
 
@@ -70,8 +71,20 @@ class ExtractController:
             extract_dto.file_path = self.S3_connector.get_signed_url(extract_dto.file_path)
         return extract_dto
 
-    def get_all_extracts(self) -> list[ExtractDTO]:
-        extract_models = self.extract_repository.get_all()
+    def get_paginated_extracts(
+        self, 
+        skip: int = 0, 
+        limit: int = 10, 
+        search_term: str = None,
+        only_active_contracts: bool = False
+    ) -> PaginatedResponseDTO[ExtractDTO]:
+        
+        total_count, extract_models = self.extract_repository.get_paginated(
+            skip=skip, 
+            limit=limit, 
+            search_term=search_term,
+            only_active_contracts=only_active_contracts
+        )
 
         extracts = []
         for extract in extract_models:
@@ -80,7 +93,12 @@ class ExtractController:
                 extract_dto.file_path = self.S3_connector.get_signed_url(extract_dto.file_path)
             extracts.append(extract_dto)
 
-        return extracts
+        return PaginatedResponseDTO(
+            total=total_count,
+            skip=skip,
+            limit=limit,
+            data=extracts
+        )
 
     def update_extract(self, extract_key: str, schema: ExtractUpdateSchema) -> ExtractDTO:
         extract_model = self.extract_repository.get_by_key(extract_key)
