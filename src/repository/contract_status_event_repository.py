@@ -1,8 +1,6 @@
 from sqlalchemy.orm import Session
 from src.repository.base_repository import BaseRepository 
-from src.models.contract_status_event_model import ContractStatusEventModel
-from src.models.contract_model import ContractModel
-from src.models.contract_status_model import ContractStatusModel
+from src.models import ContractModel, ContractStatusEventModel, ContractStatusModel
 
 
 class ContractStatusEventRepository(BaseRepository):

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.models.user_model import UserModel
+from src.models import UserModel
 from src.repository.base_repository import BaseRepository 
 
 

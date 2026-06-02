@@ -14,8 +14,13 @@ def test_create_property(auth_client):
 
 def test_get_all_properties(auth_client):
     response = auth_client.get("/properties")
+    
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    res_json = response.json()
+    assert "total" in res_json
+    assert "skip" in res_json
+    assert "limit" in res_json
+    assert isinstance(res_json["data"], list)
 
 def test_get_property_by_key(auth_client):
     payload = {

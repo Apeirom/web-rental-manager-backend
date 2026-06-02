@@ -39,8 +39,13 @@ def test_create_real_estate_duplicate_cnpj(auth_client):
 
 def test_get_all_real_estates(auth_client):
     response = auth_client.get("/real-estates")
+    
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    res_json = response.json()
+    assert "total" in res_json
+    assert "skip" in res_json
+    assert "limit" in res_json
+    assert isinstance(res_json["data"], list)
 
 def test_get_real_estate_by_key(auth_client):
     payload = {
