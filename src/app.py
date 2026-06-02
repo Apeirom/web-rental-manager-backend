@@ -66,7 +66,7 @@ app = FastAPI(
 
 origins = [
     "http://localhost:3000",
-    "https://seusite.vercel.app",
+    "https://web-rental-manager-frontend.vercel.app/",
 ]
 
 app.add_middleware(
