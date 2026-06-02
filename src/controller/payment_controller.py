@@ -3,6 +3,7 @@ from src.repository.payment_repository import PaymentRepository
 from src.repository.contract_repository import ContractRepository
 from src.schemas.payment_schema import PaymentCreateSchema, PaymentUpdateSchema
 from src.dto.payment_dto import PaymentDTO
+from src.dto.paginated_response import PaginatedResponseDTO
 from src.errors.custom_errors import PaymentNotFoundError, PaymentInvalidRelationError
 
 class PaymentController:
@@ -30,9 +31,29 @@ class PaymentController:
             raise PaymentNotFoundError(payment_key=payment_key)
         return PaymentDTO.model_validate(payment_model)
 
-    def get_all_payments(self) -> list[PaymentDTO]:
-        entities = self.payment_repository.get_all()
-        return [PaymentDTO.model_validate(e) for e in entities]
+    def get_paginated_payments(
+        self, 
+        skip: int = 0, 
+        limit: int = 10, 
+        search_term: str = None,
+        only_active_contracts: bool = False
+    ) -> PaginatedResponseDTO[PaymentDTO]:
+        
+        total_count, payment_models = self.payment_repository.get_paginated(
+            skip=skip, 
+            limit=limit, 
+            search_term=search_term,
+            only_active_contracts=only_active_contracts
+        )
+        
+        payment_dtos = [PaymentDTO.model_validate(p) for p in payment_models]
+        
+        return PaginatedResponseDTO(
+            total=total_count,
+            skip=skip,
+            limit=limit,
+            data=payment_dtos
+        )
 
     def update_payment(self, payment_key: str, schema: PaymentUpdateSchema) -> PaymentDTO:
         payment_model = self.payment_repository.get_by_key(payment_key)

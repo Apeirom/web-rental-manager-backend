@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from src.models.real_estate_model import RealEstateModel
+from sqlalchemy import or_
+from src.models import RealEstateModel, ContractModel, ContractStatusModel
 from src.repository.base_repository import BaseRepository 
 
 
@@ -25,8 +26,42 @@ class RealEstateRepository(BaseRepository):
     def get_by_cnpj(self, cnpj: str) -> RealEstateModel | None:
         return self.db.query(RealEstateModel).filter(RealEstateModel.cnpj == cnpj).first()
 
-    def get_all(self) -> list[RealEstateModel]:
-        return self.db.query(RealEstateModel).all()
+    def get_paginated(
+        self,
+        skip: int = 0,
+        limit: int = 10,
+        search_term: str | None = None,
+        name: str | None = None,
+        cnpj: str | None = None,
+        only_active_contracts: bool = False
+    ) -> tuple[int, list[RealEstateModel]]:
+        
+        query = self.db.query(RealEstateModel)
+
+        if search_term:
+            query = query.filter(
+                or_(
+                    RealEstateModel.name.ilike(f"%{search_term}%"),
+                    RealEstateModel.cnpj.ilike(f"%{search_term}%")
+                )
+            )
+
+        if name:
+            query = query.filter(RealEstateModel.name.ilike(f"%{name}%"))
+            
+        if cnpj:
+            query = query.filter(RealEstateModel.cnpj.ilike(f"%{cnpj}%"))
+
+        if only_active_contracts:
+            query = query.join(ContractModel, ContractModel.real_estate_id == RealEstateModel.id) \
+                         .join(ContractStatusModel, ContractModel.status_id == ContractStatusModel.id) \
+                         .filter(ContractStatusModel.enumerator == "active") \
+                         .distinct()
+
+        total_count = query.count()
+        items = query.offset(skip).limit(limit).all()
+
+        return total_count, items
 
     def update(self, real_estate_model: RealEstateModel, name: str, cnpj: str, address: str, commission: float, phone: str) -> RealEstateModel:
         real_estate_model.name = name

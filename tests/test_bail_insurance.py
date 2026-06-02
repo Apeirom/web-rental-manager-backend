@@ -12,8 +12,13 @@ def test_create_bail_insurance(auth_client):
 
 def test_get_all_bail_insurances(auth_client):
     response = auth_client.get("/bail-insurances")
+    
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    response_json = response.json()
+    assert "total" in response_json
+    assert "skip" in response_json
+    assert "limit" in response_json
+    assert isinstance(response_json["data"], list)
 
 def test_get_bail_insurance_by_key(auth_client):
     payload = {

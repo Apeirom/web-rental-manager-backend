@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.models.bail_insurance_model import BailInsuranceModel
+from src.models import BailInsuranceModel, ContractModel, ContractStatusModel
 from src.repository.base_repository import BaseRepository
 
 class BailInsuranceRepository(BaseRepository):
@@ -19,8 +19,39 @@ class BailInsuranceRepository(BaseRepository):
     def get_by_key(self, bail_insurance_key: str) -> BailInsuranceModel | None:
         return self.db.query(BailInsuranceModel).filter(BailInsuranceModel.key == bail_insurance_key).first()
 
-    def get_all(self) -> list[BailInsuranceModel]:
-        return self.db.query(BailInsuranceModel).all()
+    def get_paginated(
+        self,
+        skip: int = 0,
+        limit: int = 10,
+        search_term: str | None = None,
+        insurance_company: str | None = None,
+        validity: str | None = None,
+        only_active_contracts: bool = False
+    ) -> tuple[int, list[BailInsuranceModel]]:
+        
+        query = self.db.query(BailInsuranceModel)
+
+        if search_term:
+            query = query.filter(
+                BailInsuranceModel.insurance_company.ilike(f"%{search_term}%")
+            )
+
+        if insurance_company:
+            query = query.filter(BailInsuranceModel.insurance_company.ilike(f"%{insurance_company}%"))
+            
+        if validity:
+            query = query.filter(BailInsuranceModel.validity.ilike(f"%{validity}%"))
+
+        if only_active_contracts:
+            query = query.join(ContractModel, ContractModel.bail_insurance_id == BailInsuranceModel.id) \
+                         .join(ContractStatusModel, ContractModel.status_id == ContractStatusModel.id) \
+                         .filter(ContractStatusModel.enumerator == "active") \
+                         .distinct()
+
+        total_count = query.count()
+        items = query.offset(skip).limit(limit).all()
+
+        return total_count, items
 
     def update(self, bail_insurance_model: BailInsuranceModel, value: float, validity: str, insurance_company: str) -> BailInsuranceModel:
         bail_insurance_model.value = value

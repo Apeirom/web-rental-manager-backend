@@ -41,8 +41,13 @@ def test_create_contract_invalid_property(auth_client):
 
 def test_get_all_contracts(auth_client):
     response = auth_client.get("/contracts")
+    
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    res_json = response.json()
+    assert "total" in res_json
+    assert "skip" in res_json
+    assert "limit" in res_json
+    assert isinstance(res_json["data"], list)
 
 def test_get_contract_by_key(auth_client):
     tenant_res = auth_client.post("/tenants", json={"name": "Alice Tenant", "document_number": "111.222.333-44"})

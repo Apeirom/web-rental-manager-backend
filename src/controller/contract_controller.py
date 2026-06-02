@@ -6,10 +6,10 @@ from src.repository.tenant_repository import TenantRepository
 from src.repository.real_estate_repository import RealEstateRepository
 from src.repository.guarantor_repository import GuarantorRepository
 from src.repository.bail_insurance_repository import BailInsuranceRepository
-from src.models.guarantee_type_model import GuaranteeTypeModel
-from src.models.contract_status_model import ContractStatusModel
+from src.models import GuaranteeTypeModel, ContractStatusModel
 from src.schemas.contract_schema import ContractCreateSchema, ContractUpdateSchema
 from src.dto.contract_dto import ContractDTO
+from src.dto.paginated_response import PaginatedResponseDTO
 from src.errors.custom_errors import ContractNotFoundError, ContractInvalidRelationError, InvalidEnumeratorError
 from src.connectors.S3_storage_connector import S3StorageConnector
 
@@ -166,21 +166,40 @@ class ContractController:
 
     def get_paginated_contracts(
         self, 
-        skip: int, limit: int, 
-        room_name: str = None, property_name: str = None, 
-        tenant_name: str = None, real_estate_name: str = None, 
+        skip: int = 0, 
+        limit: int = 10, 
+        search_term: str = None,
+        room_name: str = None, 
+        property_name: str = None, 
+        tenant_name: str = None, 
+        real_estate_name: str = None, 
         status: str = None
-    ) -> list[ContractDTO]:
-        contract_models = self.contract_repository.get_paginated(
-            skip, limit, room_name, property_name, tenant_name, real_estate_name, status
+    ) -> PaginatedResponseDTO[ContractDTO]:
+        
+        total_count, contract_models = self.contract_repository.get_paginated(
+            skip=skip, 
+            limit=limit, 
+            search_term=search_term,
+            room_name=room_name, 
+            property_name=property_name, 
+            tenant_name=tenant_name, 
+            real_estate_name=real_estate_name, 
+            status=status
         )
+        
         contracts = []
         for contract in contract_models:
             contract_dto = ContractDTO.model_validate(contract)
             if contract_dto.file_path:
-                contract_dto.file_path = self.S3_connector.get_signed_url(contract.file_path)
+                contract_dto.file_path = self.S3_connector.get_signed_url(contract_dto.file_path)
             contracts.append(contract_dto)
-        return contracts
+            
+        return PaginatedResponseDTO(
+            total=total_count,
+            skip=skip,
+            limit=limit,
+            data=contracts
+        )
 
     def upload_document(self, contract_key: str, file_bytes: bytes, content_type: str) -> ContractDTO:
         contract_model = self.contract_repository.get_by_key(contract_key)

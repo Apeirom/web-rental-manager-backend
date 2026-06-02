@@ -3,6 +3,7 @@ from src.repository.tenant_repository import TenantRepository
 from src.schemas.tenant_schema import TenantCreateSchema, TenantUpdateSchema
 from src.dto.tenant_dto import TenantDTO
 from src.errors.custom_errors import TenantNotFoundError, TenantDuplicateDocumentError
+from src.dto.paginated_response import PaginatedResponseDTO
 
 class TenantController:
     def __init__(self, db: Session):
@@ -25,9 +26,33 @@ class TenantController:
             raise TenantNotFoundError(tenant_key=tenant_key)
         return TenantDTO.model_validate(tenant_model)
 
-    def get_all_tenants(self) -> list[TenantDTO]:
-        tenants = self.tenant_repository.get_all()
-        return [TenantDTO.model_validate(t) for t in tenants]
+    def get_paginated_tenants(
+        self, 
+        skip: int = 0, 
+        limit: int = 10, 
+        search_term: str = None,
+        name: str = None,
+        document_number: str = None,
+        only_active_contracts: bool = False
+    ) -> PaginatedResponseDTO[TenantDTO]:
+        
+        total_count, tenant_models = self.tenant_repository.get_paginated(
+            skip=skip, 
+            limit=limit, 
+            search_term=search_term,
+            name=name,
+            document_number=document_number,
+            only_active_contracts=only_active_contracts
+        )
+        
+        tenant_dtos = [TenantDTO.model_validate(t) for t in tenant_models]
+        
+        return PaginatedResponseDTO(
+            total=total_count,
+            skip=skip,
+            limit=limit,
+            data=tenant_dtos
+        )
 
     def update_tenant(self, tenant_key: str, schema: TenantUpdateSchema) -> TenantDTO:
         tenant_model = self.tenant_repository.get_by_key(tenant_key)
