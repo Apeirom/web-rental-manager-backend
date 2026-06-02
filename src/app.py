@@ -97,7 +97,7 @@ auth_router = APIRouter(
     tags=["1. Autenticação e Usuários"]
 )
 
-@auth_router.post("/users/register", response_model=UserDTO, status_code=status.HTTP_201_CREATED)
+@auth_router.post("/users/register", response_model=UserDTO, status_code=status.HTTP_201_CREATED, dependencies=[Depends(bearer_scheme)])
 def register_user(schema: UserCreateSchema, request: Request, db: Session = Depends(get_db)):
     current_user = request.state.user
     if current_user.get("role") != "master":
