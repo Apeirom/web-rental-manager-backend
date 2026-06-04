@@ -11,7 +11,7 @@ from src.middlewares.auth_middleware import AuthMiddleware
 
 from src.controller.health_controller import HealthController
 
-from src.schemas.user_schema import UserCreateSchema, UserLoginSchema
+from src.schemas.user_schema import UserCreateSchema, UserLoginSchema, UserUpdateSchema, UserRoleUpdateSchema
 from src.dto.user_dto import UserDTO, LoginResponseDTO
 from src.controller.user_controller import UserController
 
@@ -97,15 +97,6 @@ auth_router = APIRouter(
     tags=["1. Autenticação e Usuários"]
 )
 
-@auth_router.post("/users/register", response_model=UserDTO, status_code=status.HTTP_201_CREATED, dependencies=[Depends(bearer_scheme)])
-def register_user(schema: UserCreateSchema, request: Request, db: Session = Depends(get_db)):
-    current_user = request.state.user
-    if current_user.get("role") != "master":
-        raise HTTPException(status_code=403, detail="Apenas usuários master podem registrar novos usuários")
-
-    controller = UserController(db)
-    return controller.register(schema)
-
 @auth_router.post("/auth/login", response_model=LoginResponseDTO)
 def login(schema: UserLoginSchema, db: Session = Depends(get_db)):
     controller = UserController(db)
@@ -113,9 +104,56 @@ def login(schema: UserLoginSchema, db: Session = Depends(get_db)):
 
 
 
+users_router = APIRouter(
+    prefix="/users",
+    tags=["2 Usuários"],
+    dependencies=[Depends(bearer_scheme)]
+)
+
+@users_router.post("/register", response_model=UserDTO, status_code=status.HTTP_201_CREATED)
+def register_user(
+    schema: UserCreateSchema, 
+    db: Session = Depends(get_db),
+    current_user_data: dict = Depends(get_user_info_by_token)
+):
+    controller = UserController(db)
+    return controller.register(current_user_data, schema)
+
+@users_router.put("/me", response_model=UserDTO)
+def update_my_profile(
+    schema: UserUpdateSchema, 
+    db: Session = Depends(get_db),
+    current_user_data: dict = Depends(get_user_info_by_token)
+):
+    controller = UserController(db)
+    return controller.update_me(current_user_data["key"], schema)
+
+@users_router.get("", response_model=PaginatedResponseDTO[UserDTO])
+def list_users(
+    skip: int = 0, 
+    limit: int = 10, 
+    search_term: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user_data: dict = Depends(get_user_info_by_token)
+):        
+    controller = UserController(db)
+    return controller.get_paginated_users(current_user_data, skip, limit, search_term)
+
+@users_router.patch("/{user_key}/role", response_model=UserDTO)
+def update_user_role(
+    user_key: str, 
+    schema: UserRoleUpdateSchema, 
+    db: Session = Depends(get_db),
+    current_user_data: dict = Depends(get_user_info_by_token)
+):      
+    controller = UserController(db)
+    return controller.update_role(current_user_data, user_key, schema)
+
+
+
 tenant_router = APIRouter(
     prefix="/tenants",
-    tags=["2. Inquilinos (Tenants)"],
+    tags=["3. Inquilinos (Tenants)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -157,7 +195,7 @@ def delete_tenant(tenant_key: str, db: Session = Depends(get_db)):
 
 property_router = APIRouter(
     prefix="/properties",
-    tags=["3. Imóveis (Properties)"],
+    tags=["4. Imóveis (Properties)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -198,7 +236,7 @@ def delete_property(property_key: str, db: Session = Depends(get_db)):
 
 real_estate_router = APIRouter(
     prefix="/real-estates",
-    tags=["4. Imobiliárias (Real Estates)"],
+    tags=["5. Imobiliárias (Real Estates)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -239,7 +277,7 @@ def delete_real_estate(real_estate_key: str, db: Session = Depends(get_db)):
 
 guarantor_router = APIRouter(
     prefix="/guarantors",
-    tags=["5. Fiadores (Guarantors)"],
+    tags=["6. Fiadores (Guarantors)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -280,7 +318,7 @@ def delete_guarantor(guarantor_key: str, db: Session = Depends(get_db)):
 
 bail_insurance_router = APIRouter(
     prefix="/bail-insurances",
-    tags=["6. Seguros Fiança (Bail Insurances)"],
+    tags=["7. Seguros Fiança (Bail Insurances)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -321,7 +359,7 @@ def delete_bail_insurance(bail_insurance_key: str, db: Session = Depends(get_db)
 
 contract_router = APIRouter(
     prefix="/contracts",
-    tags=["7. Contratos (Contracts)"],
+    tags=["8. Contratos (Contracts)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -389,7 +427,7 @@ def list_contracts(
 
 payment_router = APIRouter(
     prefix="/payments",
-    tags=["8. Pagamentos (Payments)"],
+    tags=["9. Pagamentos (Payments)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -428,7 +466,7 @@ def delete_payment(payment_key: str, db: Session = Depends(get_db)):
 
 extract_router = APIRouter(
     prefix="/extracts",
-    tags=["9. Extratos (Extracts)"],
+    tags=["10. Extratos (Extracts)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -481,7 +519,7 @@ def upload_extract_receipt(
 
 analysis_router = APIRouter(
     prefix="/analyses",
-    tags=["10. Análises (Analyses)"],
+    tags=["11. Análises (Analyses)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -499,6 +537,7 @@ def get_income_tax(
 
 
 app.include_router(auth_router)
+app.include_router(users_router)
 app.include_router(tenant_router)
 app.include_router(property_router)
 app.include_router(real_estate_router)

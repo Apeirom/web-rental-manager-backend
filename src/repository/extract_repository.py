@@ -46,7 +46,8 @@ class ExtractRepository(BaseRepository):
             query = query.join(ExtractModel.contract).join(ContractModel.property).join(ContractModel.tenant).filter(
                 or_(
                     PropertyModel.property_name.ilike(f"%{search_term}%"),
-                    TenantModel.name.ilike(f"%{search_term}%")
+                    TenantModel.name.ilike(f"%{search_term}%"),
+                    ContractModel.room_name.ilike(f"%{search_term}%")
                 )
             )
             query = query.reset_joinpoint()

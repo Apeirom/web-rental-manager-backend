@@ -4,7 +4,8 @@ def test_login_success(client, auth_client):
         "email": "login@test.com",
         "password": "correcthorsebatterystaple"
     }
-    auth_client.post("/users/register", json=payload)
+    reg_response = auth_client.post("/users/register", json=payload)
+    assert reg_response.status_code == 201
 
     login_payload = {
         "email": "login@test.com",
@@ -12,6 +13,7 @@ def test_login_success(client, auth_client):
     }
     response = client.post("/auth/login", json=login_payload)
     
+    print(response.json())
     assert response.status_code == 200
     assert "token" in response.json()
     assert "access_token" in response.json()["token"]
