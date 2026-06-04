@@ -35,7 +35,7 @@ def get_user_info_by_token(request: Request) -> dict:
     payload = request.state.user
     
     return {
-        "key": payload.get("sub"),
+        "key": payload.get("key"),
         "email": payload.get("email"),
         "role": payload.get("role")
     }

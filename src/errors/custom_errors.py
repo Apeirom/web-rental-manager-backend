@@ -15,8 +15,8 @@ class TenantDuplicateDocumentError(BaseAppException):
         super().__init__(
             status_code=400,
             code="RM-0002",
-            message_en="A tenant with document {document_number} already exists",
-            message_pt="Um inquilino com o documento {document_number} já existe",
+            message_en="A tenant with document {document_number} already exists.",
+            message_pt="Um inquilino com o documento {document_number} já existe.",
             document_number=document_number
         )
 
@@ -25,8 +25,8 @@ class PropertyNotFoundError(BaseAppException):
         super().__init__(
             status_code=404,
             code="RM-0003",
-            message_en="Property with KEY {property_key} not found",
-            message_pt="Imóvel com KEY {property_key} não encontrado",
+            message_en="Property with KEY {property_key} not found.",
+            message_pt="Imóvel com KEY {property_key} não encontrado.",
             property_key=property_key
         )
 
@@ -35,8 +35,8 @@ class RealEstateNotFoundError(BaseAppException):
         super().__init__(
             status_code=404,
             code="RM-0004",
-            message_en="Real estate agency with KEY {real_estate_key} not found",
-            message_pt="Imobiliária com KEY {real_estate_key} não encontrada",
+            message_en="Real estate agency with KEY {real_estate_key} not found.",
+            message_pt="Imobiliária com KEY {real_estate_key} não encontrada.",
             real_estate_key=real_estate_key
         )
 
@@ -45,8 +45,8 @@ class RealEstateDuplicateCnpjError(BaseAppException):
         super().__init__(
             status_code=400,
             code="RM-0005",
-            message_en="A real estate agency with CNPJ {cnpj} already exists",
-            message_pt="Uma imobiliária com o CNPJ {cnpj} já existe",
+            message_en="A real estate agency with CNPJ {cnpj} already exists.",
+            message_pt="Uma imobiliária com o CNPJ {cnpj} já existe.",
             cnpj=cnpj
         )
 
@@ -55,8 +55,8 @@ class GuarantorNotFoundError(BaseAppException):
         super().__init__(
             status_code=404,
             code="RM-0006",
-            message_en="Guarantor with KEY {guarantor_key} not found",
-            message_pt="Fiador com KEY {guarantor_key} não encontrado",
+            message_en="Guarantor with KEY {guarantor_key} not found.",
+            message_pt="Fiador com KEY {guarantor_key} não encontrado.",
             guarantor_key=guarantor_key
         )
 
@@ -65,8 +65,8 @@ class GuarantorDuplicateDocumentError(BaseAppException):
         super().__init__(
             status_code=400,
             code="RM-0007",
-            message_en="A guarantor with document {document_number} already exists",
-            message_pt="Um fiador com o documento {document_number} já existe",
+            message_en="A guarantor with document {document_number} already exists.",
+            message_pt="Um fiador com o documento {document_number} já existe.",
             document_number=document_number
         )
 
@@ -75,8 +75,8 @@ class BailInsuranceNotFoundError(BaseAppException):
         super().__init__(
             status_code=404,
             code="RM-0008",
-            message_en="Bail insurance with KEY {bail_insurance_key} not found",
-            message_pt="Seguro fiança com KEY {bail_insurance_key} não encontrado",
+            message_en="Bail insurance with KEY {bail_insurance_key} not found.",
+            message_pt="Seguro fiança com KEY {bail_insurance_key} não encontrado.",
             bail_insurance_key=bail_insurance_key
         )
 
@@ -85,8 +85,8 @@ class ContractNotFoundError(BaseAppException):
         super().__init__(
             status_code=404,
             code="RM-0009",
-            message_en="Contract with KEY {contract_key} not found",
-            message_pt="Contrato com KEY {contract_key} não encontrado",
+            message_en="Contract with KEY {contract_key} not found.",
+            message_pt="Contrato com KEY {contract_key} não encontrado.",
             contract_key=contract_key
         )
 
@@ -95,8 +95,8 @@ class ContractInvalidRelationError(BaseAppException):
         super().__init__(
             status_code=400,
             code="RM-0010",
-            message_en="{entity_name} with KEY {key} does not exist",
-            message_pt="{entity_name} com KEY {key} não existe",
+            message_en="{entity_name} with KEY {key} does not exist.",
+            message_pt="{entity_name} com KEY {key} não existe.",
             entity_name=entity_name,
             key=key
         )
@@ -106,8 +106,8 @@ class PaymentNotFoundError(BaseAppException):
         super().__init__(
             status_code=404,
             code="RM-0011",
-            message_en="Payment with KEY {payment_key} not found",
-            message_pt="Pagamento com KEY {payment_key} não encontrado",
+            message_en="Payment with KEY {payment_key} not found.",
+            message_pt="Pagamento com KEY {payment_key} não encontrado.",
             payment_key=payment_key
         )
 
@@ -116,8 +116,8 @@ class PaymentInvalidRelationError(BaseAppException):
         super().__init__(
             status_code=400,
             code="RM-0012",
-            message_en="{entity_name} with KEY {key} does not exist",
-            message_pt="{entity_name} com KEY {key} não existe",
+            message_en="{entity_name} with KEY {key} does not exist.",
+            message_pt="{entity_name} com KEY {key} não existe.",
             entity_name=entity_name,
             key=key
         )
@@ -127,8 +127,8 @@ class ExtractNotFoundError(BaseAppException):
         super().__init__(
             status_code=404,
             code="RM-0013",
-            message_en="Extract with KEY {extract_key} not found",
-            message_pt="Extrato com KEY {extract_key} não encontrado",
+            message_en="Extract with KEY {extract_key} not found.",
+            message_pt="Extrato com KEY {extract_key} não encontrado.",
             extract_key=extract_key
         )
 
@@ -137,8 +137,8 @@ class ExtractInvalidRelationError(BaseAppException):
         super().__init__(
             status_code=400,
             code="RM-0014",
-            message_en="{entity_name} with KEY {key} does not exist",
-            message_pt="{entity_name} com KEY {key} não existe",
+            message_en="{entity_name} with KEY {key} does not exist.",
+            message_pt="{entity_name} com KEY {key} não existe.",
             entity_name=entity_name,
             key=key
         )
@@ -148,8 +148,8 @@ class UserNotFoundError(BaseAppException):
         super().__init__(
             status_code=404,
             code="RM-0015",
-            message_en="User with KEY {user_key} not found",
-            message_pt="Usuário com KEY {user_key} não encontrado",
+            message_en="User with KEY {user_key} not found.",
+            message_pt="Usuário com KEY {user_key} não encontrado.",
             user_key=user_key
         )
 
@@ -158,8 +158,8 @@ class UserDuplicateEmailError(BaseAppException):
         super().__init__(
             status_code=400,
             code="RM-0016",
-            message_en="A user with email {email} already exists",
-            message_pt="Um usuário com o email {email} já existe",
+            message_en="A user with email {email} already exists.",
+            message_pt="Um usuário com o email {email} já existe.",
             email=email
         )
 
@@ -168,8 +168,8 @@ class InvalidCredentialsError(BaseAppException):
         super().__init__(
             status_code=401,
             code="RM-0017",
-            message_en="Invalid email or password",
-            message_pt="Email ou senha inválidos"
+            message_en="Invalid email or password.",
+            message_pt="Email ou senha inválidos."
         )
 
 class InvalidEnumeratorError(BaseAppException):
@@ -187,5 +187,23 @@ class NotProvidedCredentials (BaseAppException):
             status_code=401,
             code="RM-0019",
             message_en="Credentials not provided or invalid.",
-            message_pt="Credenciais não fornecidas ou inválidas"
+            message_pt="Credenciais não fornecidas ou inválidas."
+        )
+
+class InvalidUserRole(BaseAppException):
+    def __init__(self):
+        super().__init__(
+            status_code=403,
+            code="RM-0020",
+            message_en="Only master users can perform this action.",
+            message_pt="Apenas usuários master podem realizar essa ação."
+        )
+
+class InvalidUserAction(BaseAppException):
+    def __init__(self):
+        super().__init__(
+            status_code=403,
+            code="RM-0021",
+            message_en="This user cannot perform this action.",
+            message_pt="Esse usuário não pode realizar essa ação."
         )
