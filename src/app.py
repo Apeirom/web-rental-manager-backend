@@ -456,12 +456,13 @@ def list_payments(
     skip: int = 0, 
     limit: int = 10, 
     amount: Optional[float] = None,          
-    payment_date: Optional[str] = None,
+    start_date: Optional[str] = None,      
+    end_date: Optional[str] = None,
     status: Optional[str] = None,            
     db: Session = Depends(get_db)
 ):
     controller = PaymentController(db)
-    return controller.get_paginated_payments(skip, limit, amount, payment_date, status)
+    return controller.get_paginated_payments(skip, limit, amount, start_date, end_date, status)
 
 
 
