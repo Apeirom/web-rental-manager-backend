@@ -22,7 +22,8 @@ class ExtractController:
         if contract_model.real_estate:
             commission_rate = contract_model.real_estate.commission
 
-        admin_fee = (schema.rent_amount + schema.penalty) * commission_rate
+        raw_admin_fee = (schema.rent_amount + schema.penalty) * commission_rate
+        admin_fee = round(raw_admin_fee, 2)
 
         total_revenues = (
             schema.rent_amount +
@@ -35,7 +36,8 @@ class ExtractController:
             schema.other_revenues
         )
 
-        net_transfer = total_revenues - admin_fee - schema.bank_fee
+        raw_net_transfer = total_revenues - admin_fee - schema.bank_fee
+        net_transfer = round(raw_net_transfer, 2)
 
         return admin_fee, net_transfer
 
