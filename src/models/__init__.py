@@ -10,3 +10,4 @@ from src.models.property_model import PropertyModel
 from src.models.real_estate_model import RealEstateModel
 from src.models.tenant_model import TenantModel
 from src.models.user_model import UserModel
+from src.models.payment_status_model import PaymentStatusModel

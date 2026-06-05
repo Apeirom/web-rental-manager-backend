@@ -144,3 +144,30 @@ def test_upload_extract_receipt(auth_client, base_contract_key):
         assert response.status_code == 200
         assert response.json()["file_path"] == f"https://fake-supabase.com/extracts/{extract_key}_v1.pdf"
         mock_upload.assert_called_once()
+
+def test_reconcile_extract_pending_no_autolink(auth_client, base_contract_key):
+    extract_payload = {
+        "month_ref": 11,
+        "year_ref": 2026,
+        "rent_amount": 1900.00,
+        "contract_key": base_contract_key
+    }
+    extract_res = auth_client.post("/extracts", json=extract_payload)
+    extract_key = extract_res.json()["key"]
+    
+    payment_res = auth_client.post("/payments", json={
+        "payment_date": "2026-11-10",
+        "amount": 1900.00
+    })
+    payment_key = payment_res.json()["key"]
+
+    recon_res = auth_client.get(f"/extracts/{extract_key}/reconcile")
+    
+    assert recon_res.status_code == 200
+    recon_data = recon_res.json()
+    
+    assert recon_data["status"] == "pending"
+    assert recon_data["candidates"] is not None
+    assert len(recon_data["candidates"]) == 1
+    assert recon_data["candidates"][0]["key"] == payment_key
+    assert recon_data["candidates"][0]["status"] == "unlinked"
