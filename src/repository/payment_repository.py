@@ -52,7 +52,8 @@ class PaymentRepository(BaseRepository):
         skip: int = 0, 
         limit: int = 10, 
         amount: float | None = None,
-        payment_date: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         status_enumerator: str | None = None
     ) -> tuple[int, list[PaymentModel]]:
         query = self.db.query(PaymentModel)
@@ -60,8 +61,11 @@ class PaymentRepository(BaseRepository):
         if amount is not None:
             query = query.filter(PaymentModel.amount == amount)
         
-        if payment_date:
-            query = query.filter(PaymentModel.payment_date.startswith(payment_date))
+        if start_date:
+            query = query.filter(PaymentModel.payment_date >= start_date)
+
+        if end_date:
+            query = query.filter(PaymentModel.payment_date <= end_date)
 
         if status_enumerator:
             query = query.join(PaymentStatusModel).filter(

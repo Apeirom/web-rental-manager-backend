@@ -57,7 +57,8 @@ class PaymentController:
         skip: int = 0, 
         limit: int = 10, 
         amount: float | None = None,
-        payment_date: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         status: str | None = None
     ) -> PaginatedResponseDTO[PaymentDTO]:
         
@@ -65,7 +66,8 @@ class PaymentController:
             skip=skip, 
             limit=limit, 
             amount=amount,
-            payment_date=payment_date,
+            start_date=start_date,
+            end_date=end_date,
             status_enumerator=status
         )
         
