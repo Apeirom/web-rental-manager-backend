@@ -436,17 +436,6 @@ def create_payment(schema: PaymentCreateSchema, db: Session = Depends(get_db)):
     controller = PaymentController(db)
     return controller.create_payment(schema)
 
-@payment_router.get("", response_model=PaginatedResponseDTO[PaymentDTO])
-def list_payments(
-    skip: int = 0, 
-    limit: int = 10, 
-    search_term: Optional[str] = None,
-    only_active_contracts: bool = False,
-    db: Session = Depends(get_db)
-):
-    controller = PaymentController(db)
-    return controller.get_paginated_payments(skip, limit, search_term, only_active_contracts)
-
 @payment_router.get("/{payment_key}", response_model=PaymentDTO)
 def get_payment(payment_key: str, db: Session = Depends(get_db)):
     controller = PaymentController(db)
@@ -461,6 +450,18 @@ def update_payment(payment_key: str, schema: PaymentUpdateSchema, db: Session = 
 def delete_payment(payment_key: str, db: Session = Depends(get_db)):
     controller = PaymentController(db)
     controller.delete_payment(payment_key)
+
+@payment_router.get("", response_model=PaginatedResponseDTO[PaymentDTO])
+def list_payments(
+    skip: int = 0, 
+    limit: int = 10, 
+    amount: Optional[float] = None,          
+    payment_date: Optional[str] = None,
+    status: Optional[str] = None,            
+    db: Session = Depends(get_db)
+):
+    controller = PaymentController(db)
+    return controller.get_paginated_payments(skip, limit, amount, payment_date, status)
 
 
 
@@ -500,6 +501,14 @@ def update_extract(extract_key: str, schema: ExtractUpdateSchema, db: Session = 
 def delete_extract(extract_key: str, db: Session = Depends(get_db)):
     controller = ExtractController(db)
     controller.delete_extract(extract_key)
+
+@extract_router.get("/{extract_key}/reconcile")
+def reconcile_extract(
+    extract_key: str, 
+    db: Session = Depends(get_db)
+):
+    controller = ExtractController(db)
+    return controller.reconcile_extract(extract_key)
 
 @extract_router.post("/{extract_key}/upload-receipt", response_model=ExtractDTO)
 def upload_extract_receipt(

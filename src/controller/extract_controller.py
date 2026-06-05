@@ -1,16 +1,20 @@
 from sqlalchemy.orm import Session
 from src.repository.extract_repository import ExtractRepository
 from src.repository.contract_repository import ContractRepository
+from src.repository.payment_repository import PaymentRepository
 from src.schemas.extract_schema import ExtractCreateSchema, ExtractUpdateSchema
 from src.dto.extract_dto import ExtractDTO
+from src.dto.payment_dto import PaymentDTO, PaymentReconciliationDTO
 from src.dto.paginated_response import PaginatedResponseDTO
 from src.errors.custom_errors import ExtractNotFoundError, ExtractInvalidRelationError
+from src.models import PaymentStatusModel
 from src.connectors.S3_storage_connector import S3StorageConnector
 
 class ExtractController:
     def __init__(self, db: Session):
         self.extract_repository = ExtractRepository(db)
-        self.contract_repo = ContractRepository(db)
+        self.contract_repository = ContractRepository(db)
+        self.payment_repository = PaymentRepository(db)
         self.S3_connector = S3StorageConnector(bucket_name="extracts")
 
     def _calculate_financials(self, schema, contract_model):
@@ -36,7 +40,7 @@ class ExtractController:
         return admin_fee, net_transfer
 
     def create_extract(self, schema: ExtractCreateSchema) -> ExtractDTO:
-        contract_model = self.contract_repo.get_by_key(schema.contract_key)
+        contract_model = self.contract_repository.get_by_key(schema.contract_key)
         if not contract_model:
             raise ExtractInvalidRelationError(entity_name="Contract", key=schema.contract_key)
 
@@ -105,7 +109,7 @@ class ExtractController:
         if not extract_model:
             raise ExtractNotFoundError(extract_key=extract_key)
 
-        contract_model = self.contract_repo.get_by_key(schema.contract_key)
+        contract_model = self.contract_repository.get_by_key(schema.contract_key)
         if not contract_model:
             raise ExtractInvalidRelationError(entity_name="Contract", key=schema.contract_key)
 
@@ -155,3 +159,23 @@ class ExtractController:
         self.extract_repository.db.flush()
 
         return ExtractDTO.model_validate(extract_model)
+    
+    def reconcile_extract(self, extract_key: str) -> PaymentReconciliationDTO:
+        extract = self.extract_repository.get_by_key(extract_key)
+        if not extract:
+            raise ExtractNotFoundError(extract_key)
+
+        target_amount = extract.net_transfer 
+        
+        count_itens, candidates = self.payment_repository.get_paginated(
+            skip=0, 
+            limit=50,
+            amount=target_amount, 
+            status_enumerator="unlinked"
+        )
+
+        return PaymentReconciliationDTO(
+            status="pending",
+            message=f"Encontrados {count_itens} pagamentos possíveis.",
+            candidates=[PaymentDTO.model_validate(p) for p in candidates]
+        )
