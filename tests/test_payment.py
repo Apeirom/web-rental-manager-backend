@@ -7,7 +7,6 @@ def test_create_payment_success(auth_client):
     
     assert response.status_code == 201
     assert response.json()["amount"] == 1500.50
-    # Valida se o sistema automaticamente definiu o status como 'unlinked'
     assert response.json()["status"] == "unlinked"
     assert "key" in response.json()
 
@@ -28,13 +27,25 @@ def test_get_all_payments(auth_client):
     assert len(res_json["data"]) >= 1
 
 def test_get_all_payments_with_params(auth_client):
-    # Testando os nossos novos filtros de busca!
-    response = auth_client.get("/payments?skip=0&limit=5&amount=1000.00&status=unlinked")
+    
+    auth_client.post("/payments", json={"payment_date": "2026-10-05", "amount": 3000.00})
+    auth_client.post("/payments", json={"payment_date": "2026-10-15", "amount": 3000.00})
+    auth_client.post("/payments", json={"payment_date": "2026-10-25", "amount": 4000.00})
+
+    response = auth_client.get(
+        "/payments?skip=0&limit=5&amount=3000.00&start_date=2026-10-01&end_date=2026-10-20&status=unlinked"
+    )
+    
     assert response.status_code == 200
     res_json = response.json()
     assert res_json["skip"] == 0
     assert res_json["limit"] == 5
     assert isinstance(res_json["data"], list)
+    
+    for payment in res_json["data"]:
+        assert payment["amount"] == 3000.00
+        assert payment["status"] == "unlinked"
+        assert "2026-10-01" <= payment["payment_date"] <= "2026-10-20"
 
 def test_get_payment_by_key(auth_client):
     payload = {
@@ -59,7 +70,7 @@ def test_update_payment(auth_client):
     update_payload = {
         "payment_date": "2026-08-18",
         "amount": 1350.00,
-        "status_enumerator": "linked" # Forçando uma edição manual de status
+        "status_enumerator": "linked"
     }
     update_res = auth_client.put(f"/payments/{payment_key}", json=update_payload)
     
