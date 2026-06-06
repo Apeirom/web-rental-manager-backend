@@ -27,5 +27,7 @@ class ExtractModel(Base):
 
     file_path = Column(String, nullable=True)
 
+    payment = relationship("PaymentModel", back_populates="extract", uselist=False)
+
     contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
     contract = relationship("ContractModel")
