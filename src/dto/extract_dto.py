@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from src.dto.contract_dto import ContractDTO
+from src.dto.payment_dto import PaymentDTO
 
 class ExtractDTO(BaseModel):
     key: str
@@ -22,5 +23,6 @@ class ExtractDTO(BaseModel):
     
     file_path: Optional[str]
     contract: ContractDTO
+    payment: Optional[PaymentDTO] = None
 
     model_config = ConfigDict(from_attributes=True)
