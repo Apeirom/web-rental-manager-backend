@@ -23,6 +23,6 @@ class ExtractDTO(BaseModel):
     
     file_path: Optional[str]
     contract: ContractDTO
-    payment: PaymentDTO
+    payment: Optional[PaymentDTO] = None
 
     model_config = ConfigDict(from_attributes=True)
