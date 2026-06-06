@@ -7,7 +7,6 @@ from src.dto.extract_dto import ExtractDTO
 from src.dto.payment_dto import PaymentDTO, PaymentReconciliationDTO
 from src.dto.paginated_response import PaginatedResponseDTO
 from src.errors.custom_errors import ExtractNotFoundError, ExtractInvalidRelationError
-from src.models import PaymentStatusModel
 from src.connectors.S3_storage_connector import S3StorageConnector
 
 class ExtractController:
@@ -82,14 +81,16 @@ class ExtractController:
         skip: int = 0, 
         limit: int = 10, 
         search_term: str = None,
-        only_active_contracts: bool = False
+        only_active_contracts: bool = False,
+        is_reconciled: bool | None = None
     ) -> PaginatedResponseDTO[ExtractDTO]:
         
         total_count, extract_models = self.extract_repository.get_paginated(
             skip=skip, 
             limit=limit, 
             search_term=search_term,
-            only_active_contracts=only_active_contracts
+            only_active_contracts=only_active_contracts,
+            is_reconciled=is_reconciled
         )
 
         extracts = []
@@ -141,6 +142,8 @@ class ExtractController:
         extract_model = self.extract_repository.get_by_key(extract_key)
         if not extract_model:
             raise ExtractNotFoundError(extract_key=extract_key)
+        if extract_model.payment:
+            extract_model.payment.extract_id = None
         self.extract_repository.delete(extract_model)
 
     def upload_receipt(self, extract_key: str, file_bytes: bytes, content_type: str) -> ExtractDTO:
@@ -167,17 +170,24 @@ class ExtractController:
         if not extract:
             raise ExtractNotFoundError(extract_key)
 
+        if extract.payment:
+            return PaymentReconciliationDTO(
+                status="alreadyLinked",
+                message="Este extrato já está vinculado a um pagamento.",
+                candidates=[PaymentDTO.model_validate(extract.payment)]
+            )
+
         target_amount = extract.net_transfer 
         
         count_itens, candidates = self.payment_repository.get_paginated(
             skip=0, 
             limit=50,
             amount=target_amount, 
-            status_enumerator="unlinked"
+            is_linked=False
         )
 
         return PaymentReconciliationDTO(
-            status="pending",
+            status="success",
             message=f"Encontrados {count_itens} pagamentos possíveis.",
             candidates=[PaymentDTO.model_validate(p) for p in candidates]
         )
