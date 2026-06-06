@@ -1,16 +1,15 @@
 from sqlalchemy.orm import Session
-from src.models import PaymentModel, PaymentStatusModel, ExtractModel
+from src.models import PaymentModel, ExtractModel
 from src.repository.base_repository import BaseRepository
 
 class PaymentRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def create(self, payment_date: str, amount: float, status: PaymentStatusModel) -> PaymentModel:
+    def create(self, payment_date: str, amount: float) -> PaymentModel:
         payment = PaymentModel(
             payment_date=payment_date,
             amount=amount,
-            status=status
         )
         self.db.add(payment)
         self.db.flush()
@@ -24,21 +23,12 @@ class PaymentRepository(BaseRepository):
         payment_model: PaymentModel, 
         payment_date: str | None = None, 
         amount: float | None = None, 
-        status: PaymentStatusModel | None = None,
         extract: ExtractModel | None = None
     ) -> PaymentModel:
         
-        if payment_date is not None:
-            payment_model.payment_date = payment_date
-        
-        if amount is not None:
-            payment_model.amount = amount
-            
-        if status is not None:
-            payment_model.status = status
-            
-        if extract is not None:
-            payment_model.extract = extract
+        payment_model.payment_date = payment_date
+        payment_model.amount = amount    
+        payment_model.extract = extract
 
         self.db.flush()
         return payment_model
@@ -54,7 +44,7 @@ class PaymentRepository(BaseRepository):
         amount: float | None = None,
         start_date: str | None = None,
         end_date: str | None = None,
-        status_enumerator: str | None = None
+        is_linked: bool | None = None
     ) -> tuple[int, list[PaymentModel]]:
         query = self.db.query(PaymentModel)
 
@@ -67,10 +57,10 @@ class PaymentRepository(BaseRepository):
         if end_date:
             query = query.filter(PaymentModel.payment_date <= end_date)
 
-        if status_enumerator:
-            query = query.join(PaymentStatusModel).filter(
-                PaymentStatusModel.enumerator == status_enumerator
-            )
+        if is_linked is True:
+            query = query.filter(PaymentModel.extract_id.isnot(None))
+        elif is_linked is False:
+            query = query.filter(PaymentModel.extract_id.is_(None))
 
         query = query.order_by(PaymentModel.payment_date.desc())
 

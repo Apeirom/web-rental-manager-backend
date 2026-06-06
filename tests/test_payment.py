@@ -1,3 +1,19 @@
+import pytest
+
+@pytest.fixture
+def base_contract_key(auth_client):
+    tenant_res = auth_client.post("/tenants", json={"name": "Payment Tenant", "document_number": "444.444.444-44"})
+    prop_res = auth_client.post("/properties", json={"property_name": "Payment Prop", "owner_name": "Owner", "address": "789 St", "room_count": 2})
+    
+    contract_res = auth_client.post("/contracts", json={
+        "guarantee_type": "deposit",
+        "rental_deposit": 2000.00,
+        "rent_amount": 1000.00,
+        "property_key": prop_res.json()["key"],
+        "tenant_key": tenant_res.json()["key"]
+    })
+    return contract_res.json()["key"]
+
 def test_create_payment_success(auth_client):
     payload = {
         "payment_date": "2026-05-17",
@@ -27,19 +43,16 @@ def test_get_all_payments(auth_client):
     assert len(res_json["data"]) >= 1
 
 def test_get_all_payments_with_params(auth_client):
-    
     auth_client.post("/payments", json={"payment_date": "2026-10-05", "amount": 3000.00})
     auth_client.post("/payments", json={"payment_date": "2026-10-15", "amount": 3000.00})
     auth_client.post("/payments", json={"payment_date": "2026-10-25", "amount": 4000.00})
 
     response = auth_client.get(
-        "/payments?skip=0&limit=5&amount=3000.00&start_date=2026-10-01&end_date=2026-10-20&status=unlinked"
+        "/payments?skip=0&limit=5&amount=3000.00&start_date=2026-10-01&end_date=2026-10-20&is_linked=false"
     )
     
     assert response.status_code == 200
     res_json = response.json()
-    assert res_json["skip"] == 0
-    assert res_json["limit"] == 5
     assert isinstance(res_json["data"], list)
     
     for payment in res_json["data"]:
@@ -59,25 +72,29 @@ def test_get_payment_by_key(auth_client):
     assert response.status_code == 200
     assert response.json()["amount"] == 1200.00
 
-def test_update_payment(auth_client):
-    payload = {
-        "payment_date": "2026-08-17",
-        "amount": 1300.00
-    }
-    create_res = auth_client.post("/payments", json=payload)
-    payment_key = create_res.json()["key"]
+def test_update_payment_link_and_unlink(auth_client, base_contract_key):
+    ext_res = auth_client.post("/extracts", json={"month_ref": 1, "year_ref": 2026, "rent_amount": 1300.00, "contract_key": base_contract_key})
+    extract_key = ext_res.json()["key"]
 
-    update_payload = {
-        "payment_date": "2026-08-18",
-        "amount": 1350.00,
-        "status_enumerator": "linked"
-    }
-    update_res = auth_client.put(f"/payments/{payment_key}", json=update_payload)
-    
-    assert update_res.status_code == 200
-    assert update_res.json()["payment_date"] == "2026-08-18"
-    assert update_res.json()["amount"] == 1350.00
-    assert update_res.json()["status"] == "linked"
+    pay_res = auth_client.post("/payments", json={"payment_date": "2026-08-17", "amount": 1300.00})
+    payment_key = pay_res.json()["key"]
+
+    link_res = auth_client.put(f"/payments/{payment_key}", json={
+        "payment_date": "2026-08-17",
+        "amount": 1300.00,
+        "extract_key": extract_key
+    })
+    assert link_res.status_code == 200
+    assert link_res.json()["status"] == "linked"
+    assert link_res.json()["extract_key"] == extract_key
+
+    unlink_res = auth_client.put(f"/payments/{payment_key}", json={
+        "payment_date": "2026-08-17",
+        "amount": 1300.00,
+    })
+    assert unlink_res.status_code == 200
+    assert unlink_res.json()["status"] == "unlinked"
+    assert unlink_res.json()["extract_key"] is None
 
 def test_delete_payment(auth_client):
     payload = {

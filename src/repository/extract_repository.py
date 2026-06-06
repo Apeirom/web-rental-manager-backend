@@ -37,7 +37,8 @@ class ExtractRepository(BaseRepository):
         skip: int = 0,
         limit: int = 10,
         search_term: str | None = None,
-        only_active_contracts: bool = False
+        only_active_contracts: bool = False,
+        is_reconciled: bool | None = None
     ) -> tuple[int, list[ExtractModel]]:
         
         query = self.db.query(ExtractModel)
@@ -57,6 +58,11 @@ class ExtractRepository(BaseRepository):
                 ContractStatusModel.enumerator == "active"
             )
             query = query.reset_joinpoint()
+
+        if is_reconciled is True:
+            query = query.filter(ExtractModel.payment.has())
+        elif is_reconciled is False:
+            query = query.filter(~ExtractModel.payment.has())
 
         total_count = query.count()
         items = query.offset(skip).limit(limit).all()

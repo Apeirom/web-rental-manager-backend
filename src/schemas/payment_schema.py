@@ -8,5 +8,4 @@ class PaymentCreateSchema(BaseModel):
 class PaymentUpdateSchema(BaseModel):
     payment_date: str
     amount: float
-    status_enumerator: Optional[str] = None
     extract_key: Optional[str] = None

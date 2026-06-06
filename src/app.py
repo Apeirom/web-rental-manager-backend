@@ -40,7 +40,7 @@ from src.dto.contract_dto import ContractDTO
 from src.controller.contract_controller import ContractController
 
 from src.schemas.payment_schema import PaymentCreateSchema, PaymentUpdateSchema
-from src.dto.payment_dto import PaymentDTO
+from src.dto.payment_dto import PaymentDTO, PaymentReconciliationDTO
 from src.controller.payment_controller import PaymentController
 
 from src.schemas.extract_schema import ExtractCreateSchema, ExtractUpdateSchema
@@ -451,18 +451,18 @@ def delete_payment(payment_key: str, db: Session = Depends(get_db)):
     controller = PaymentController(db)
     controller.delete_payment(payment_key)
 
-@payment_router.get("", response_model=PaginatedResponseDTO[PaymentDTO])
+@payment_router.get("", response_model=PaginatedResponseDTO[PaymentDTO], response_model_exclude_none=True)
 def list_payments(
     skip: int = 0, 
     limit: int = 10, 
     amount: Optional[float] = None,          
     start_date: Optional[str] = None,      
     end_date: Optional[str] = None,
-    status: Optional[str] = None,            
+    is_linked: Optional[bool] = None,            
     db: Session = Depends(get_db)
 ):
     controller = PaymentController(db)
-    return controller.get_paginated_payments(skip, limit, amount, start_date, end_date, status)
+    return controller.get_paginated_payments(skip, limit, amount, start_date, end_date, is_linked)
 
 
 
@@ -483,10 +483,11 @@ def list_extracts(
     limit: int = 10, 
     search_term: Optional[str] = None,
     only_active_contracts: bool = False,
+    is_reconciled: Optional[bool] = None,
     db: Session = Depends(get_db)
 ):
     controller = ExtractController(db)
-    return controller.get_paginated_extracts(skip, limit, search_term, only_active_contracts)
+    return controller.get_paginated_extracts(skip, limit, search_term, only_active_contracts, is_reconciled)
 
 @extract_router.get("/{extract_key}", response_model=ExtractDTO)
 def get_extract(extract_key: str, db: Session = Depends(get_db)):
@@ -503,7 +504,7 @@ def delete_extract(extract_key: str, db: Session = Depends(get_db)):
     controller = ExtractController(db)
     controller.delete_extract(extract_key)
 
-@extract_router.get("/{extract_key}/reconcile")
+@extract_router.get("/{extract_key}/reconcile", response_model=PaymentReconciliationDTO)
 def reconcile_extract(
     extract_key: str, 
     db: Session = Depends(get_db)
