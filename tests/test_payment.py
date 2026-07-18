@@ -73,28 +73,31 @@ def test_get_payment_by_key(auth_client):
     assert response.json()["amount"] == 1200.00
 
 def test_update_payment_link_and_unlink(auth_client, base_contract_key):
-    ext_res = auth_client.post("/extracts", json={"month_ref": 1, "year_ref": 2026, "rent_amount": 1300.00, "contract_key": base_contract_key})
-    extract_key = ext_res.json()["key"]
+    ext_res = auth_client.post("/extract-batches", json={
+        "extracts": [{"month_ref": 1, "year_ref": 2026, "rent_amount": 1300.00, "contract_key": base_contract_key}]
+    })
+    batch_key = ext_res.json()["key"]
 
-    pay_res = auth_client.post("/payments", json={"payment_date": "2026-08-17", "amount": 1300.00})
+    pay_res = auth_client.post("/payments", json={"payment_date": "2026-01-10", "amount": 1300.00})
     payment_key = pay_res.json()["key"]
 
     link_res = auth_client.put(f"/payments/{payment_key}", json={
-        "payment_date": "2026-08-17",
-        "amount": 1300.00,
-        "extract_key": extract_key
+        "payment_date": "2026-01-10", 
+        "amount": 1300.00, 
+        "extract_batch_key": batch_key
     })
     assert link_res.status_code == 200
     assert link_res.json()["status"] == "linked"
-    assert link_res.json()["extract_key"] == extract_key
+    assert link_res.json()["extract_batch_key"] == batch_key
 
     unlink_res = auth_client.put(f"/payments/{payment_key}", json={
-        "payment_date": "2026-08-17",
-        "amount": 1300.00,
+        "payment_date": "2026-01-10", 
+        "amount": 1300.00, 
+        "extract_batch_key": None
     })
     assert unlink_res.status_code == 200
     assert unlink_res.json()["status"] == "unlinked"
-    assert unlink_res.json()["extract_key"] is None
+    assert unlink_res.json()["extract_batch_key"] is None
 
 def test_delete_payment(auth_client):
     payload = {

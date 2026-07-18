@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from src.models import PaymentModel, ExtractModel
+from src.models import PaymentModel, ExtractBatchModel
 from src.repository.base_repository import BaseRepository
 
 class PaymentRepository(BaseRepository):
@@ -23,12 +23,12 @@ class PaymentRepository(BaseRepository):
         payment_model: PaymentModel, 
         payment_date: str | None = None, 
         amount: float | None = None, 
-        extract: ExtractModel | None = None
+        extract_batch: ExtractBatchModel | None = None
     ) -> PaymentModel:
         
         payment_model.payment_date = payment_date
         payment_model.amount = amount    
-        payment_model.extract = extract
+        payment_model.extract_batch = extract_batch
 
         self.db.flush()
         return payment_model
@@ -58,9 +58,9 @@ class PaymentRepository(BaseRepository):
             query = query.filter(PaymentModel.payment_date <= end_date)
 
         if is_linked is True:
-            query = query.filter(PaymentModel.extract_id.isnot(None))
+            query = query.filter(PaymentModel.extract_batch.has())
         elif is_linked is False:
-            query = query.filter(PaymentModel.extract_id.is_(None))
+            query = query.filter(~PaymentModel.extract_batch.has())
 
         query = query.order_by(PaymentModel.payment_date.desc())
 
