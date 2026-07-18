@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from src.repository.payment_repository import PaymentRepository
-from src.repository.extract_repository import ExtractRepository
+from src.repository.extract_batch_repository import ExtractBatchRepository
 from src.schemas.payment_schema import PaymentCreateSchema, PaymentUpdateSchema
 from src.dto.payment_dto import PaymentDTO
 from src.dto.paginated_response import PaginatedResponseDTO
@@ -9,7 +9,7 @@ from src.errors.custom_errors import PaymentNotFoundError, ExtractNotFoundError
 class PaymentController:
     def __init__(self, db: Session):
         self.payment_repository = PaymentRepository(db)
-        self.extract_repository = ExtractRepository(db)
+        self.extract_batch_repository = ExtractBatchRepository(db)
 
     def create_payment(self, schema: PaymentCreateSchema) -> PaymentDTO:
         payment_model = self.payment_repository.create(
@@ -29,17 +29,17 @@ class PaymentController:
         if not payment_model:
             raise PaymentNotFoundError(payment_key=payment_key)
 
-        extract_model = None
-        if schema.extract_key:
-            extract_model = self.extract_repository.get_by_key(schema.extract_key)
-            if not extract_model:
-                raise ExtractNotFoundError(schema.extract_key)
+        extract_batch_model = None
+        if schema.extract_batch_key:
+            extract_batch_model = self.extract_batch_repository.get_by_key(schema.extract_batch_key)
+            if not extract_batch_model:
+                raise ExtractNotFoundError(schema.extract_batch_key)
         
         updated_model = self.payment_repository.update(
             payment_model=payment_model,
             payment_date=schema.payment_date,
             amount=schema.amount,
-            extract=extract_model
+            extract_batch=extract_batch_model
         )
         
         return PaymentDTO.model_validate(updated_model)

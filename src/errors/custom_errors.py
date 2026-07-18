@@ -207,3 +207,13 @@ class InvalidUserAction(BaseAppException):
             message_en="This user cannot perform this action.",
             message_pt="Esse usuário não pode realizar essa ação."
         )
+
+class ExtractBatchNotFoundError(BaseAppException):
+    def __init__(self, extract_key: str):
+        super().__init__(
+            status_code=404,
+            code="RM-0022",
+            message_en="Extract Batch with KEY {extract_key} not found.",
+            message_pt="Lote de Extratos com KEY {extract_key} não encontrado.",
+            extract_key=extract_key
+        )

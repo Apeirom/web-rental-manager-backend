@@ -19,140 +19,178 @@ def base_contract_key(auth_client):
     contract_res = auth_client.post("/contracts", json=contract_payload)
     return contract_res.json()["key"]
 
-def test_create_extract_success(auth_client, base_contract_key):
+def test_create_extract_batch_success(auth_client, base_contract_key):
     payload = {
-        "month_ref": 1,
-        "year_ref": 2027,
-        "rent_amount": 1000.00,
-        "iptu": 150.00,
-        "water": 50.00,
-        "agreement": 0.00,
-        "contract_key": base_contract_key
+        "extracts": [
+            {
+                "month_ref": 1,
+                "year_ref": 2027,
+                "rent_amount": 1000.00,
+                "iptu": 150.00,
+                "water": 50.00,
+                "agreement": 0.00,
+                "contract_key": base_contract_key
+            }
+        ]
     }
-    response = auth_client.post("/extracts", json=payload)
+    response = auth_client.post("/extract-batches", json=payload)
     
     assert response.status_code == 201
-    assert response.json()["iptu"] == 150.00
-    assert response.json()["contract"]["key"] == base_contract_key
-    assert "key" in response.json()
+    res_json = response.json()
+    assert "key" in res_json
+    assert len(res_json["extracts"]) == 1
+    assert res_json["extracts"][0]["iptu"] == 150.00
+    assert res_json["extracts"][0]["contract"]["key"] == base_contract_key
+    assert "total_net_transfer" in res_json
 
-def test_create_extract_invalid_contract(auth_client):
+def test_create_extract_batch_invalid_contract(auth_client):
     payload = {
-        "month_ref": 2,
-        "year_ref": 2027,
-        "contract_key": "invalid-contract-key"
+        "extracts": [
+            {
+                "month_ref": 2,
+                "year_ref": 2027,
+                "contract_key": "invalid-contract-key"
+            }
+        ]
     }
-    response = auth_client.post("/extracts", json=payload)
+    response = auth_client.post("/extract-batches", json=payload)
     assert response.status_code == 400
     assert response.json()["detail"]["code"] == "RM-0014"
 
-def test_get_all_extracts(auth_client, base_contract_key):
+def test_get_all_extract_batches(auth_client, base_contract_key):
     payload = {
-        "month_ref": 6,
-        "year_ref": 2027,
-        "rent_amount": 1000.00,
-        "contract_key": base_contract_key
+        "extracts": [
+            {
+                "month_ref": 6,
+                "year_ref": 2027,
+                "rent_amount": 1000.00,
+                "contract_key": base_contract_key
+            }
+        ]
     }
-    auth_client.post("/extracts", json=payload)
+    auth_client.post("/extract-batches", json=payload)
 
-    response = auth_client.get("/extracts")
+    response = auth_client.get("/extract-batches")
     assert response.status_code == 200
     res_json = response.json()
     assert "total" in res_json
     assert isinstance(res_json["data"], list)
 
-def test_get_all_extracts_with_params(auth_client, base_contract_key):
-    response = auth_client.get("/extracts?skip=0&limit=5&only_active_contracts=true")
+def test_get_all_extract_batches_with_params(auth_client, base_contract_key):
+    response = auth_client.get("/extract-batches?skip=0&limit=5&only_active_contracts=true")
     assert response.status_code == 200
     res_json = response.json()
     assert res_json["skip"] == 0
     assert res_json["limit"] == 5
 
-def test_get_extract_by_key(auth_client, base_contract_key):
+def test_get_individual_extract_from_batch(auth_client, base_contract_key):
     payload = {
-        "month_ref": 3,
-        "year_ref": 2027,
-        "rent_amount": 1000.00,
-        "contract_key": base_contract_key
+        "extracts": [
+            {
+                "month_ref": 3,
+                "year_ref": 2027,
+                "rent_amount": 1000.00,
+                "contract_key": base_contract_key
+            }
+        ]
     }
-    create_res = auth_client.post("/extracts", json=payload)
-    extract_key = create_res.json()["key"]
+    create_res = auth_client.post("/extract-batches", json=payload)
+    batch_key = create_res.json()["key"]
+    extract_key = create_res.json()["extracts"][0]["key"]
 
-    response = auth_client.get(f"/extracts/{extract_key}")
+    response = auth_client.get(f"/extract-batches/{batch_key}/extracts/{extract_key}")
     assert response.status_code == 200
     assert response.json()["month_ref"] == 3
 
-def test_update_extract(auth_client, base_contract_key):
+def test_update_extract_batch(auth_client, base_contract_key):
     payload = {
-        "month_ref": 4,
-        "year_ref": 2027,
-        "rent_amount": 1000.00,
-        "contract_key": base_contract_key
+        "extracts": [
+            {
+                "month_ref": 4,
+                "year_ref": 2027,
+                "rent_amount": 1000.00,
+                "contract_key": base_contract_key
+            }
+        ]
     }
-    create_res = auth_client.post("/extracts", json=payload)
-    extract_key = create_res.json()["key"]
+    create_res = auth_client.post("/extract-batches", json=payload)
+    batch_key = create_res.json()["key"]
+    extract_key = create_res.json()["extracts"][0]["key"]
 
     update_payload = {
-        "month_ref": 4,
-        "year_ref": 2027,
-        "rent_amount": 1100.00,
-        "iptu": 50.00,
-        "water": 0.00,
-        "agreement": 0.00,
-        "contract_key": base_contract_key
+        "extracts": [
+            {
+                "key": extract_key,
+                "month_ref": 4,
+                "year_ref": 2027,
+                "rent_amount": 1100.00,
+                "iptu": 50.00,
+                "water": 0.00,
+                "agreement": 0.00,
+                "contract_key": base_contract_key
+            }
+        ]
     }
-    update_res = auth_client.put(f"/extracts/{extract_key}", json=update_payload)
+    update_res = auth_client.put(f"/extract-batches/{batch_key}", json=update_payload)
     assert update_res.status_code == 200
-    assert update_res.json()["rent_amount"] == 1100.00
+    assert update_res.json()["extracts"][0]["rent_amount"] == 1100.00
 
-# ATUALIZADO: Testa se deletar o extrato mantém o pagamento vivo (porém desvinculado)
-def test_delete_extract_preserves_payment(auth_client, base_contract_key):
-    ext_res = auth_client.post("/extracts", json={"month_ref": 5, "year_ref": 2027, "rent_amount": 1000.00, "contract_key": base_contract_key})
-    extract_key = ext_res.json()["key"]
+def test_delete_extract_batch_preserves_payment(auth_client, base_contract_key):
+    ext_res = auth_client.post("/extract-batches", json={
+        "extracts": [{"month_ref": 5, "year_ref": 2027, "rent_amount": 1000.00, "contract_key": base_contract_key}]
+    })
+    batch_key = ext_res.json()["key"]
 
     pay_res = auth_client.post("/payments", json={"payment_date": "2027-05-10", "amount": 1000.00})
     payment_key = pay_res.json()["key"]
 
-    # Vincula o pagamento
-    auth_client.put(f"/payments/{payment_key}", json={"payment_date": "2027-05-10", "amount": 1000.00, "extract_key": extract_key})
+    auth_client.put(f"/payments/{payment_key}", json={
+        "payment_date": "2027-05-10", 
+        "amount": 1000.00, 
+        "extract_batch_key": batch_key
+    })
 
-    # Deleta o extrato
-    delete_res = auth_client.delete(f"/extracts/{extract_key}")
+    delete_res = auth_client.delete(f"/extract-batches/{batch_key}")
     assert delete_res.status_code == 204
 
-    # Verifica se o pagamento sobreviveu e voltou para unlinked
     check_pay = auth_client.get(f"/payments/{payment_key}")
     assert check_pay.status_code == 200
     assert check_pay.json()["status"] == "unlinked"
-    assert check_pay.json()["extract_key"] is None
+    assert check_pay.json().get("extract_batch_key") is None
 
-def test_upload_extract_receipt(auth_client, base_contract_key):
+def test_upload_extract_batch_receipt(auth_client, base_contract_key):
     payload = {
-        "month_ref": 10,
-        "year_ref": 2026,
-        "rent_amount": 1000.00,
-        "contract_key": base_contract_key
+        "extracts": [
+            {
+                "month_ref": 10,
+                "year_ref": 2026,
+                "rent_amount": 1000.00,
+                "contract_key": base_contract_key
+            }
+        ]
     }
-    create_res = auth_client.post("/extracts", json=payload)
-    extract_key = create_res.json()["key"]
+    create_res = auth_client.post("/extract-batches", json=payload)
+    batch_key = create_res.json()["key"]
 
     with patch("src.connectors.S3_storage_connector.S3StorageConnector.upload_file") as mock_upload:
-        mock_upload.return_value = f"https://fake-supabase.com/extracts/{extract_key}_v1.pdf"
+        mock_upload.return_value = f"https://fake-supabase.com/extracts/{batch_key}_v1.pdf"
 
         file_data = {"file": ("comprovante.pdf", b"Conteudo em bytes", "application/pdf")}
-        response = auth_client.post(f"/extracts/{extract_key}/upload-receipt", files=file_data)
+        response = auth_client.post(f"/extract-batches/{batch_key}/upload-receipt", files=file_data)
 
         assert response.status_code == 200
-        assert response.json()["file_path"] == f"https://fake-supabase.com/extracts/{extract_key}_v1.pdf"
+        assert response.json()["file_path"] == f"https://fake-supabase.com/extracts/{batch_key}_v1.pdf"
 
-def test_reconcile_extract_pending_no_autolink(auth_client, base_contract_key):
-    extract_res = auth_client.post("/extracts", json={"month_ref": 11, "year_ref": 2026, "rent_amount": 1900.00, "contract_key": base_contract_key})
-    extract_key = extract_res.json()["key"]
+def test_reconcile_extract_batch_pending_no_autolink(auth_client, base_contract_key):
+    extract_res = auth_client.post("/extract-batches", json={
+        "extracts": [{"month_ref": 11, "year_ref": 2026, "rent_amount": 1900.00, "contract_key": base_contract_key}]
+    })
+    batch_key = extract_res.json()["key"]
     
     payment_res = auth_client.post("/payments", json={"payment_date": "2026-11-10", "amount": 1900.00})
     payment_key = payment_res.json()["key"]
 
-    recon_res = auth_client.get(f"/extracts/{extract_key}/reconcile")
+    recon_res = auth_client.get(f"/extract-batches/{batch_key}/reconcile")
     assert recon_res.status_code == 200
     recon_data = recon_res.json()
     
@@ -160,16 +198,22 @@ def test_reconcile_extract_pending_no_autolink(auth_client, base_contract_key):
     assert len(recon_data["candidates"]) == 1
     assert recon_data["candidates"][0]["key"] == payment_key
 
-def test_reconcile_extract_already_linked(auth_client, base_contract_key):
-    extract_res = auth_client.post("/extracts", json={"month_ref": 12, "year_ref": 2026, "rent_amount": 1900.00, "contract_key": base_contract_key})
-    extract_key = extract_res.json()["key"]
+def test_reconcile_extract_batch_already_linked(auth_client, base_contract_key):
+    extract_res = auth_client.post("/extract-batches", json={
+        "extracts": [{"month_ref": 12, "year_ref": 2026, "rent_amount": 1900.00, "contract_key": base_contract_key}]
+    })
+    batch_key = extract_res.json()["key"]
     
     payment_res = auth_client.post("/payments", json={"payment_date": "2026-12-10", "amount": 1900.00})
     payment_key = payment_res.json()["key"]
 
-    auth_client.put(f"/payments/{payment_key}", json={"payment_date": "2026-12-10", "amount": 1900.00, "extract_key": extract_key})
+    auth_client.put(f"/payments/{payment_key}", json={
+        "payment_date": "2026-12-10", 
+        "amount": 1900.00, 
+        "extract_batch_key": batch_key
+    })
 
-    recon_res = auth_client.get(f"/extracts/{extract_key}/reconcile")
+    recon_res = auth_client.get(f"/extract-batches/{batch_key}/reconcile")
     assert recon_res.status_code == 200
     recon_data = recon_res.json()
     

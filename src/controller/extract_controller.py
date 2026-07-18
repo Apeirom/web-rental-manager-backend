@@ -1,193 +1,28 @@
 from sqlalchemy.orm import Session
 from src.repository.extract_repository import ExtractRepository
-from src.repository.contract_repository import ContractRepository
-from src.repository.payment_repository import PaymentRepository
-from src.schemas.extract_schema import ExtractCreateSchema, ExtractUpdateSchema
+from src.repository.extract_batch_repository import ExtractBatchRepository
 from src.dto.extract_dto import ExtractDTO
-from src.dto.payment_dto import PaymentDTO, PaymentReconciliationDTO
-from src.dto.paginated_response import PaginatedResponseDTO
-from src.errors.custom_errors import ExtractNotFoundError, ExtractInvalidRelationError
-from src.connectors.S3_storage_connector import S3StorageConnector
+from src.errors.custom_errors import ExtractNotFoundError
 
 class ExtractController:
     def __init__(self, db: Session):
         self.extract_repository = ExtractRepository(db)
-        self.contract_repository = ContractRepository(db)
-        self.payment_repository = PaymentRepository(db)
-        self.S3_connector = S3StorageConnector(bucket_name="extracts")
+        self.extract_batch_repository = ExtractBatchRepository(db)
 
-    def _calculate_financials(self, schema, contract_model):
-        commission_rate = 0.0
-        if contract_model.real_estate:
-            commission_rate = contract_model.real_estate.commission
-
-        raw_admin_fee = (schema.rent_amount + schema.penalty) * commission_rate
-        admin_fee = round(raw_admin_fee, 2)
-
-        total_revenues = (
-            schema.rent_amount +
-            schema.iptu +
-            schema.water +
-            schema.maintenance +
-            schema.agreement +
-            schema.penalty +
-            schema.interest +
-            schema.other_revenues
-        )
-
-        raw_net_transfer = total_revenues - admin_fee - schema.bank_fee
-        net_transfer = round(raw_net_transfer, 2)
-
-        return admin_fee, net_transfer
-
-    def create_extract(self, schema: ExtractCreateSchema) -> ExtractDTO:
-        contract_model = self.contract_repository.get_by_key(schema.contract_key)
-        if not contract_model:
-            raise ExtractInvalidRelationError(entity_name="Contract", key=schema.contract_key)
-
-        admin_fee, net_transfer = self._calculate_financials(schema, contract_model)
-
-        extract_model = self.extract_repository.create(
-            month_ref=schema.month_ref,
-            year_ref=schema.year_ref,
-            rent_amount=schema.rent_amount,
-            iptu=schema.iptu,
-            water=schema.water,
-            maintenance=schema.maintenance,
-            agreement=schema.agreement,
-            penalty=schema.penalty,
-            interest=schema.interest,
-            other_revenues=schema.other_revenues,
-            bank_fee=schema.bank_fee,
-            administration_fee=admin_fee,
-            net_transfer=net_transfer,
-            file_path=schema.file_path,
-            contract_id=contract_model.id
-        )
+    def get_extract(self, batch_key: str, extract_key: str) -> ExtractDTO:
+        extract_model = self.extract_repository.get_by_key(extract_key)
+        if not extract_model or extract_model.batch.key != batch_key:
+            raise ExtractNotFoundError(extract_key)
         return ExtractDTO.model_validate(extract_model)
 
-    def get_extract(self, extract_key: str) -> ExtractDTO:
+    def delete_extract(self, batch_key: str, extract_key: str) -> None:
+        batch_model = self.extract_batch_repository.get_by_key(batch_key)
         extract_model = self.extract_repository.get_by_key(extract_key)
-        if not extract_model:
-            raise ExtractNotFoundError(extract_key=extract_key)
         
-        extract_dto = ExtractDTO.model_validate(extract_model)
-        if extract_dto.file_path:
-            extract_dto.file_path = self.S3_connector.get_signed_url(extract_dto.file_path)
-        return extract_dto
-
-    def get_paginated_extracts(
-        self, 
-        skip: int = 0, 
-        limit: int = 10, 
-        search_term: str = None,
-        only_active_contracts: bool = False,
-        is_reconciled: bool | None = None
-    ) -> PaginatedResponseDTO[ExtractDTO]:
-        
-        total_count, extract_models = self.extract_repository.get_paginated(
-            skip=skip, 
-            limit=limit, 
-            search_term=search_term,
-            only_active_contracts=only_active_contracts,
-            is_reconciled=is_reconciled
-        )
-
-        extracts = []
-        for extract in extract_models:
-            extract_dto = ExtractDTO.model_validate(extract)
-            if extract_dto.file_path:
-                extract_dto.file_path = self.S3_connector.get_signed_url(extract_dto.file_path)
-            extracts.append(extract_dto)
-
-        return PaginatedResponseDTO(
-            total=total_count,
-            skip=skip,
-            limit=limit,
-            data=extracts
-        )
-
-    def update_extract(self, extract_key: str, schema: ExtractUpdateSchema) -> ExtractDTO:
-        extract_model = self.extract_repository.get_by_key(extract_key)
-        if not extract_model:
-            raise ExtractNotFoundError(extract_key=extract_key)
-
-        contract_model = self.contract_repository.get_by_key(schema.contract_key)
-        if not contract_model:
-            raise ExtractInvalidRelationError(entity_name="Contract", key=schema.contract_key)
-
-        admin_fee, net_transfer = self._calculate_financials(schema, contract_model)
-
-        updated_model = self.extract_repository.update(
-            extract_model=extract_model,
-            month_ref=schema.month_ref,
-            year_ref=schema.year_ref,
-            rent_amount=schema.rent_amount,
-            iptu=schema.iptu,
-            water=schema.water,
-            maintenance=schema.maintenance,
-            agreement=schema.agreement,
-            penalty=schema.penalty,
-            interest=schema.interest,
-            other_revenues=schema.other_revenues,
-            bank_fee=schema.bank_fee,
-            administration_fee=admin_fee,
-            net_transfer=net_transfer,
-            file_path=schema.file_path,
-            contract_id=contract_model.id
-        )
-        return ExtractDTO.model_validate(updated_model)
-
-    def delete_extract(self, extract_key: str) -> None:
-        extract_model = self.extract_repository.get_by_key(extract_key)
-        if not extract_model:
-            raise ExtractNotFoundError(extract_key=extract_key)
-        if extract_model.payment:
-            extract_model.payment.extract_id = None
-        self.extract_repository.delete(extract_model)
-
-    def upload_receipt(self, extract_key: str, file_bytes: bytes, content_type: str) -> ExtractDTO:
-        extract_model = self.extract_repository.get_by_key(extract_key)
-        if not extract_model:
-            raise ExtractNotFoundError(extract_key=extract_key)
-        
-        extension = ".pdf" if "pdf" in content_type else ""
-        file_name = f"{extract_key}_v1{extension}"
-
-        file_url = self.S3_connector.upload_file(
-            file_bytes=file_bytes,
-            file_name=file_name,
-            content_type=content_type
-        )
-
-        extract_model.file_path = file_url
-        self.extract_repository.db.flush()
-
-        return ExtractDTO.model_validate(extract_model)
-    
-    def reconcile_extract(self, extract_key: str) -> PaymentReconciliationDTO:
-        extract = self.extract_repository.get_by_key(extract_key)
-        if not extract:
+        if not batch_model or not extract_model or extract_model.batch_id != batch_model.id:
             raise ExtractNotFoundError(extract_key)
 
-        if extract.payment:
-            return PaymentReconciliationDTO(
-                status="alreadyLinked",
-                message="Este extrato já está vinculado a um pagamento.",
-                candidates=[PaymentDTO.model_validate(extract.payment)]
-            )
-
-        target_amount = extract.net_transfer 
-        
-        count_itens, candidates = self.payment_repository.get_paginated(
-            skip=0, 
-            limit=50,
-            amount=target_amount, 
-            is_linked=False
-        )
-
-        return PaymentReconciliationDTO(
-            status="success",
-            message=f"Encontrados {count_itens} pagamentos possíveis.",
-            candidates=[PaymentDTO.model_validate(p) for p in candidates]
-        )
+        self.extract_batch_repository.unlink_payment(batch_model)
+        self.extract_repository.delete(extract_model)
+        self.extract_batch_repository.recalculate_and_check_payment(batch_model)
+        self.extract_batch_repository.commit()

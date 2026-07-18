@@ -7,7 +7,7 @@ class PaymentDTO(BaseModel):
     amount: float
     
     status: str
-    extract_key: Optional[str] = None
+    extract_batch_key: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
