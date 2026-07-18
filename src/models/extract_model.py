@@ -22,12 +22,10 @@ class ExtractModel(Base):
 
     administration_fee = Column(Float, default=0.0, nullable=False)
     bank_fee = Column(Float, default=0.0, nullable=False)
-
     net_transfer = Column(Float, default=0.0, nullable=False)
 
-    file_path = Column(String, nullable=True)
-
-    payment = relationship("PaymentModel", back_populates="extract", uselist=False)
+    batch_id = Column(Integer, ForeignKey("extract_batches.id"), nullable=False)
+    batch = relationship("ExtractBatchModel", back_populates="extracts")
 
     contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
     contract = relationship("ContractModel")

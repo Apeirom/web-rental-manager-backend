@@ -8,4 +8,4 @@ class PaymentCreateSchema(BaseModel):
 class PaymentUpdateSchema(BaseModel):
     payment_date: str
     amount: float
-    extract_key: Optional[str] = None
+    extract_batch_key: Optional[str] = None

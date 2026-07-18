@@ -1,11 +1,10 @@
 from pydantic import BaseModel
-from typing import Optional
 
-class ExtractBaseSchema(BaseModel):
+class ExtractCreateSchema(BaseModel):
+    contract_key: str
     month_ref: int
     year_ref: int
-    file_path: Optional[str] = None
-
+    
     rent_amount: float = 0.0
     iptu: float = 0.0
     water: float = 0.0
@@ -16,8 +15,6 @@ class ExtractBaseSchema(BaseModel):
     other_revenues: float = 0.0
     bank_fee: float = 0.0
 
-class ExtractCreateSchema(ExtractBaseSchema):
-    contract_key: str
-
-class ExtractUpdateSchema(ExtractBaseSchema):
-    contract_key: str
+class ExtractUpdateSchema(ExtractCreateSchema):
+    key: str
+    

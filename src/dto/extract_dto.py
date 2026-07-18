@@ -21,8 +21,6 @@ class ExtractDTO(BaseModel):
     bank_fee: float
     net_transfer: float
     
-    file_path: Optional[str]
     contract: ContractDTO
-    payment: Optional[PaymentDTO] = None
 
     model_config = ConfigDict(from_attributes=True)

@@ -11,13 +11,12 @@ class PaymentModel(Base):
     payment_date = Column(String, nullable=False)
     amount = Column(Float, nullable=False)
 
-    extract_id = Column(Integer, ForeignKey("extracts.id"), nullable=True, unique=True)
-    extract = relationship("ExtractModel", back_populates="payment")
-
+    extract_batch = relationship("ExtractBatchModel", back_populates="payment", uselist=False)
+    
     @property
     def status(self) -> str:
-        return 'linked' if self.extract_id else 'unlinked'
+        return 'linked' if self.extract_batch else 'unlinked'
 
     @property
-    def extract_key(self) -> str | None:
-        return self.extract.key if self.extract else None
+    def extract_batch_key(self) -> str | None:
+        return self.extract_batch.key if self.extract_batch else None

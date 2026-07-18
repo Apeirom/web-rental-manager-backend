@@ -29,16 +29,22 @@ def test_income_tax_analysis_success(auth_client):
     assert contract_res.status_code == 201
     contract_key = contract_res.json()["key"]
 
-    extract_payload = {
-        "contract_key": contract_key,
-        "month_ref": 5,
-        "year_ref": 2026,
-        "rent_amount": 2000.00,
-        "agreement": 500.00, # Base total = 2500
-        "iptu": 100.00,
-        "water": 50.00
+    batch_payload = {
+        "extracts": [
+            {
+                "contract_key": contract_key,
+                "month_ref": 5,
+                "year_ref": 2026,
+                "rent_amount": 2000.00,
+                "agreement": 500.00,
+                "iptu": 100.00,
+                "water": 50.00
+            }
+        ]
     }
-    auth_client.post("/extracts", json=extract_payload)
+    create_extract_batch_response = auth_client.post("/extract-batches", json=batch_payload)
+    assert create_extract_batch_response.status_code == 201
+
     response = auth_client.get("/analyses/income-tax?start_year=2026&start_month=1&end_year=2026&end_month=12")
     
     assert response.status_code == 200

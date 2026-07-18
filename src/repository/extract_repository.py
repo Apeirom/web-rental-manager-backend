@@ -1,13 +1,12 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_
-from src.models import ExtractModel, ContractModel, PropertyModel, TenantModel, ContractStatusModel
-from src.repository.base_repository import BaseRepository 
+from src.models import ExtractModel,ContractModel
+from src.repository.base_repository import BaseRepository
 
 class ExtractRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def create(self, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, file_path: str | None, contract_id: int) -> ExtractModel:
+    def create(self, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, contract_id: int, batch_id: int) -> ExtractModel:
         extract = ExtractModel(
             month_ref=month_ref,
             year_ref=year_ref,
@@ -22,8 +21,8 @@ class ExtractRepository(BaseRepository):
             bank_fee=bank_fee,
             administration_fee=administration_fee,
             net_transfer=net_transfer,
-            file_path=file_path,
-            contract_id=contract_id
+            contract_id=contract_id,
+            batch_id=batch_id
         )
         self.db.add(extract)
         self.db.flush()
@@ -32,46 +31,10 @@ class ExtractRepository(BaseRepository):
     def get_by_key(self, extract_key: str) -> ExtractModel | None:
         return self.db.query(ExtractModel).filter(ExtractModel.key == extract_key).first()
 
-    def get_paginated(
-        self,
-        skip: int = 0,
-        limit: int = 10,
-        search_term: str | None = None,
-        only_active_contracts: bool = False,
-        is_reconciled: bool | None = None
-    ) -> tuple[int, list[ExtractModel]]:
-        
-        query = self.db.query(ExtractModel)
-
-        if search_term:
-            query = query.join(ExtractModel.contract).join(ContractModel.property).join(ContractModel.tenant).filter(
-                or_(
-                    PropertyModel.property_name.ilike(f"%{search_term}%"),
-                    TenantModel.name.ilike(f"%{search_term}%"),
-                    ContractModel.room_name.ilike(f"%{search_term}%")
-                )
-            )
-            query = query.reset_joinpoint()
-
-        if only_active_contracts:
-            query = query.join(ExtractModel.contract).join(ContractStatusModel, ContractModel.status_id == ContractStatusModel.id).filter(
-                ContractStatusModel.enumerator == "active"
-            )
-            query = query.reset_joinpoint()
-
-        if is_reconciled is True:
-            query = query.filter(ExtractModel.payment.has())
-        elif is_reconciled is False:
-            query = query.filter(~ExtractModel.payment.has())
-
-        total_count = query.count()
-        items = query.offset(skip).limit(limit).all()
-
-        return total_count, items
-    
     def get_by_date_range_with_relations(self, start_year: int, start_month: int, end_year: int, end_month: int) -> list[ExtractModel]:
         start_val = (start_year * 12) + start_month
         end_val = (end_year * 12) + end_month
+
 
         return self.db.query(ExtractModel).options(
             joinedload(ExtractModel.contract).joinedload(ContractModel.tenant),
@@ -82,7 +45,7 @@ class ExtractRepository(BaseRepository):
             ((ExtractModel.year_ref * 12) + ExtractModel.month_ref) <= end_val
         ).order_by(ExtractModel.year_ref.asc(), ExtractModel.month_ref.asc()).all()
 
-    def update(self, extract_model: ExtractModel, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, file_path: str | None, contract_id: int) -> ExtractModel:
+    def update(self, extract_model: ExtractModel, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, contract_id: int) -> ExtractModel:
         extract_model.month_ref = month_ref
         extract_model.year_ref = year_ref
         extract_model.rent_amount = rent_amount
@@ -96,7 +59,6 @@ class ExtractRepository(BaseRepository):
         extract_model.bank_fee = bank_fee
         extract_model.administration_fee = administration_fee
         extract_model.net_transfer = net_transfer
-        extract_model.file_path = file_path
         extract_model.contract_id = contract_id
         
         self.db.flush()
