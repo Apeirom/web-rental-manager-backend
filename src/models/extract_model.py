@@ -24,7 +24,7 @@ class ExtractModel(Base):
     bank_fee = Column(Float, default=0.0, nullable=False)
     net_transfer = Column(Float, default=0.0, nullable=False)
 
-    batch_id = Column(Integer, ForeignKey("extract_batches.id"), nullable=False)
+    extract_batch_id = Column(Integer, ForeignKey("extract_batches.id"), nullable=False)
     batch = relationship("ExtractBatchModel", back_populates="extracts")
 
     contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
