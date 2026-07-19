@@ -19,7 +19,7 @@ class ExtractController:
         batch_model = self.extract_batch_repository.get_by_key(batch_key)
         extract_model = self.extract_repository.get_by_key(extract_key)
         
-        if not batch_model or not extract_model or extract_model.batch_id != batch_model.id:
+        if not batch_model or not extract_model or extract_model.extract_batch_id != batch_model.id:
             raise ExtractNotFoundError(extract_key)
 
         self.extract_batch_repository.unlink_payment(batch_model)
