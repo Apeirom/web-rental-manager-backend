@@ -45,7 +45,7 @@ class ExtractBatchController:
                 iptu=item.iptu, water=item.water, maintenance=item.maintenance, agreement=item.agreement,
                 penalty=item.penalty, interest=item.interest, other_revenues=item.other_revenues,
                 bank_fee=item.bank_fee, administration_fee=admin_fee, net_transfer=net_transfer,
-                batch_id=batch_model.id, contract_id=contract_model.id
+                extract_batch_id=batch_model.id, contract_id=contract_model.id
             )
             
         self.extract_batch_repository.update_total(batch_model, round(total_net, 2))
@@ -86,7 +86,7 @@ class ExtractBatchController:
                 iptu=item_schema.iptu, water=item_schema.water, maintenance=item_schema.maintenance, agreement=item_schema.agreement,
                 penalty=item_schema.penalty, interest=item_schema.interest, other_revenues=item_schema.other_revenues,
                 bank_fee=item_schema.bank_fee, administration_fee=admin_fee, net_transfer=net_transfer,
-                batch_id=batch_model.id, contract_id=contract.id
+                extract_batch_id=batch_model.id, contract_id=contract.id
             )
             
         self.extract_batch_repository.recalculate_and_check_payment(batch_model)

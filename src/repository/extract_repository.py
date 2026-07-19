@@ -6,7 +6,7 @@ class ExtractRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def create(self, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, contract_id: int, batch_id: int) -> ExtractModel:
+    def create(self, month_ref: int, year_ref: int, rent_amount: float, iptu: float, water: float, maintenance: float, agreement: float, penalty: float, interest: float, other_revenues: float, bank_fee: float, administration_fee: float, net_transfer: float, contract_id: int, extract_batch_id: int) -> ExtractModel:
         extract = ExtractModel(
             month_ref=month_ref,
             year_ref=year_ref,
@@ -22,7 +22,7 @@ class ExtractRepository(BaseRepository):
             administration_fee=administration_fee,
             net_transfer=net_transfer,
             contract_id=contract_id,
-            batch_id=batch_id
+            extract_batch_id=extract_batch_id
         )
         self.db.add(extract)
         self.db.flush()
