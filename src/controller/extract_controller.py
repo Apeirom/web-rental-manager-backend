@@ -22,7 +22,12 @@ class ExtractController:
         if not batch_model or not extract_model or extract_model.extract_batch_id != batch_model.id:
             raise ExtractNotFoundError(extract_key)
 
-        self.extract_batch_repository.unlink_payment(batch_model)
         self.extract_repository.delete(extract_model)
-        self.extract_batch_repository.recalculate_and_check_payment(batch_model)
+
+        new_total = 0.0
+        for extract in batch_model.extracts:
+            new_total += extract.net
+
+        self.extract_batch_repository.update_total(batch_model, round(new_total, 2))
+
         self.extract_batch_repository.commit()
