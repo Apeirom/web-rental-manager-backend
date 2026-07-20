@@ -9,6 +9,7 @@ from src.dto.payment_dto import PaymentReconciliationDTO, PaymentDTO
 from src.dto.paginated_response import PaginatedResponseDTO
 from src.errors.custom_errors import ExtractNotFoundError, ExtractInvalidRelationError, ExtractBatchNotFoundError
 from src.connectors.S3_storage_connector import S3StorageConnector
+from src.utils.file_handler import verify_file_path
 
 class ExtractBatchController:
     def __init__(self, db: Session):
@@ -57,7 +58,11 @@ class ExtractBatchController:
         if not batch_model:
             raise ExtractBatchNotFoundError(batch_key)
 
-        batch_model.file_path = schema.file_path
+        if verify_file_path(schema.file_path):
+            batch_model.file_path = schema.file_path
+        else:
+            if schema.file_path == "":
+                batch_model.file_path = None
 
         payload_updates = {}
         payload_adds = []
