@@ -59,38 +59,69 @@ class ExtractBatchController:
 
         batch_model.file_path = schema.file_path
 
-        payload_updates = {item.key: item for item in schema.extracts if item.key}
-        payload_adds = [item for item in schema.extracts if not item.key]
-
-        existing_extracts = {e.key: e for e in batch_model.extracts}
-        for ext_key, ext_model in existing_extracts.items():
-            if ext_key not in payload_updates:
-                self.extract_repository.delete(ext_model)
+        payload_updates = {}
+        payload_adds = []
+        for item in schema.extracts:
+            if item.key:
+                payload_updates[item.key] = item
             else:
-                item_schema = payload_updates[ext_key]
+                payload_adds.append(item)
+
+        existing_extracts = {}
+        for extract in batch_model.extracts:
+            existing_extracts[extract.key] = extract
+
+        for existing_key, existing_model in existing_extracts.items():
+            if existing_key not in payload_updates:
+                self.extract_repository.delete(existing_model)
+            else:
+                item_schema = payload_updates[existing_key]
                 contract = self.contract_repository.get_by_key(item_schema.contract_key)
                 admin_fee, net_transfer = self._calculate_financials(item_schema, contract)
+                
                 self.extract_repository.update(
-                    extract_model=ext_model, month_ref=item_schema.month_ref, year_ref=item_schema.year_ref,
-                    rent_amount=item_schema.rent_amount, iptu=item_schema.iptu, water=item_schema.water,
-                    maintenance=item_schema.maintenance, agreement=item_schema.agreement, penalty=item_schema.penalty,
-                    interest=item_schema.interest, other_revenues=item_schema.other_revenues, bank_fee=item_schema.bank_fee,
-                    administration_fee=admin_fee, net_transfer=net_transfer, contract_id=contract.id
+                    extract_model=existing_model,
+                    month_ref=item_schema.month_ref,
+                    year_ref=item_schema.year_ref,
+                    rent_amount=item_schema.rent_amount,
+                    iptu=item_schema.iptu,
+                    water=item_schema.water,
+                    maintenance=item_schema.maintenance,
+                    agreement=item_schema.agreement,
+                    penalty=item_schema.penalty,
+                    interest=item_schema.interest,
+                    other_revenues=item_schema.other_revenues,
+                    bank_fee=item_schema.bank_fee,
+                    administration_fee=admin_fee,
+                    net_transfer=net_transfer,
+                    contract_id=contract.id
                 )
 
         for item_schema in payload_adds:
             contract = self.contract_repository.get_by_key(item_schema.contract_key)
             admin_fee, net_transfer = self._calculate_financials(item_schema, contract)
+            
             self.extract_repository.create(
-                month_ref=item_schema.month_ref, year_ref=item_schema.year_ref, rent_amount=item_schema.rent_amount,
-                iptu=item_schema.iptu, water=item_schema.water, maintenance=item_schema.maintenance, agreement=item_schema.agreement,
-                penalty=item_schema.penalty, interest=item_schema.interest, other_revenues=item_schema.other_revenues,
-                bank_fee=item_schema.bank_fee, administration_fee=admin_fee, net_transfer=net_transfer,
-                extract_batch_id=batch_model.id, contract_id=contract.id
+                month_ref=item_schema.month_ref,
+                year_ref=item_schema.year_ref,
+                rent_amount=item_schema.rent_amount,
+                iptu=item_schema.iptu,
+                water=item_schema.water,
+                maintenance=item_schema.maintenance,
+                agreement=item_schema.agreement,
+                penalty=item_schema.penalty,
+                interest=item_schema.interest,
+                other_revenues=item_schema.other_revenues,
+                bank_fee=item_schema.bank_fee,
+                administration_fee=admin_fee,
+                net_transfer=net_transfer,
+                extract_batch_id=batch_model.id,
+                contract_id=contract.id
             )
             
         self.extract_batch_repository.recalculate_and_check_payment(batch_model)
         self.extract_batch_repository.commit()
+        
         return ExtractBatchDTO.model_validate(batch_model)
 
     def delete_batch(self, batch_key: str) -> None:
