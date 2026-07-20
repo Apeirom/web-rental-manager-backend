@@ -24,17 +24,10 @@ class ExtractBatchRepository(BaseRepository):
         self.db.flush()
 
     def update_total(self, batch_model: ExtractBatchModel, new_total: float) -> None:
-        batch_model.total_net_transfer = new_total
-        self.db.flush()
-
-    def recalculate_and_check_payment(self, batch_model: ExtractBatchModel) -> None:
-        self.db.flush()
-        
-        new_total = round(sum([e.net_transfer for e in batch_model.extracts]), 2)
         if batch_model.total_net_transfer != new_total:
-            batch_model.total_net_transfer = new_total
             batch_model.payment_id = None
-        
+            
+        batch_model.total_net_transfer = new_total
         self.db.flush()
 
     def get_paginated(

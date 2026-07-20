@@ -220,3 +220,97 @@ def test_reconcile_extract_batch_already_linked(auth_client, base_contract_key):
     assert recon_data["status"] == "alreadyLinked"
     assert len(recon_data["candidates"]) == 1
     assert recon_data["candidates"][0]["key"] == payment_key
+
+def test_update_extract_batch_delete_and_add_calculates_total_correctly(auth_client, base_contract_key):
+    create_payload = {
+        "extracts": [
+            {
+                "month_ref": 1,
+                "year_ref": 2026,
+                "rent_amount": 2000.00,
+                "contract_key": base_contract_key
+            }
+        ]
+    }
+    create_res = auth_client.post("/extract-batches", json=create_payload)
+    assert create_res.status_code == 201
+    
+    create_data = create_res.json()
+    batch_key = create_data["key"]
+    first_extract_key = create_data["extracts"][0]["key"]
+    
+    update_payload = {
+        "extracts": [
+            {
+                "month_ref": 2,
+                "year_ref": 2026,
+                "rent_amount": 3000.00,
+                "contract_key": base_contract_key
+            }
+        ]
+    }
+    update_res = auth_client.put(f"/extract-batches/{batch_key}", json=update_payload)
+    assert update_res.status_code == 200
+    
+    update_data = update_res.json()
+    
+    assert len(update_data["extracts"]) == 1
+    new_extract_key = update_data["extracts"][0]["key"]
+    assert new_extract_key != first_extract_key
+    
+    expected_net_transfer = update_data["extracts"][0]["net_transfer"]
+    assert update_data["total_net_transfer"] == expected_net_transfer
+
+
+def test_update_extract_batch_complex_scenario_calculates_total_correctly(auth_client, base_contract_key):
+    create_payload = {
+        "extracts": [
+            {
+                "month_ref": 1,
+                "year_ref": 2026,
+                "rent_amount": 1000.00,
+                "contract_key": base_contract_key
+            },
+            {
+                "month_ref": 1,
+                "year_ref": 2026,
+                "rent_amount": 2000.00,
+                "contract_key": base_contract_key
+            }
+        ]
+    }
+    create_res = auth_client.post("/extract-batches", json=create_payload)
+    assert create_res.status_code == 201
+    
+    create_data = create_res.json()
+    batch_key = create_data["key"]
+    extract_to_keep_key = create_data["extracts"][0]["key"]
+
+    update_payload = {
+        "extracts": [
+            {
+                "key": extract_to_keep_key,
+                "month_ref": 1,
+                "year_ref": 2026,
+                "rent_amount": 1500.00,
+                "contract_key": base_contract_key
+            },
+            {
+                "month_ref": 2,
+                "year_ref": 2026,
+                "rent_amount": 3000.00,
+                "contract_key": base_contract_key
+            }
+        ]
+    }
+    update_res = auth_client.put(f"/extract-batches/{batch_key}", json=update_payload)
+    assert update_res.status_code == 200
+    
+    update_data = update_res.json()
+    assert len(update_data["extracts"]) == 2
+
+    total_calculated = 0.0
+    for ext in update_data["extracts"]:
+        total_calculated += ext["net_transfer"]
+
+    assert update_data["total_net_transfer"] == total_calculated
