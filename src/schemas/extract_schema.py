@@ -17,5 +17,5 @@ class ExtractCreateSchema(BaseModel):
     bank_fee: float = 0.0
 
 class ExtractUpdateSchema(ExtractCreateSchema):
-    key: Optional[str]
+    key: Optional[str] = None
     
