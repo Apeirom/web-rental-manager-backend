@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 
 class ExtractCreateSchema(BaseModel):
@@ -16,5 +17,5 @@ class ExtractCreateSchema(BaseModel):
     bank_fee: float = 0.0
 
 class ExtractUpdateSchema(ExtractCreateSchema):
-    key: str
+    key: Optional[str]
     
