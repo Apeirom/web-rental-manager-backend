@@ -1,12 +1,13 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
+from datetime import date
 
 class DepositDTO(BaseModel):
     key: str
     type: str
     amount: float
     paid_in_cash: Optional[bool]
-    deposit_date: Optional[str]
+    deposit_date: Optional[date]
     model_config = ConfigDict(from_attributes=True)
 
 class GuarantorDTO(BaseModel):
