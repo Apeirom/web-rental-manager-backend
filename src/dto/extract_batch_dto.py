@@ -1,4 +1,3 @@
-# src/dto/extract_dto.py
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from src.dto.extract_dto import ExtractDTO

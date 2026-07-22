@@ -2,24 +2,30 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from src.repository.base_repository import BaseRepository
 from src.models import (
-  ContractModel,
-  GuaranteeTypeModel,
-  ContractStatusModel,
-  PropertyModel,
-  TenantModel,
-  RealEstateModel,
-  GuarantorModel,
-  BailInsuranceModel
+    ContractModel,
+    ContractStatusModel,
+    PropertyModel,
+    TenantModel,
+    RealEstateModel,
+    GuaranteeModel
 )
 
 class ContractRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def create(self, guarantee_type: GuaranteeTypeModel, rental_deposit: float, rent_amount: float, room_name: str | None, status: ContractStatusModel, file_path: str | None, property: PropertyModel, tenant: TenantModel, real_estate: RealEstateModel | None, guarantor: GuarantorModel | None, bail_insurance: BailInsuranceModel | None) -> ContractModel:
+    def create(
+        self, 
+        rent_amount: float, 
+        room_name: str | None, 
+        status: ContractStatusModel, 
+        file_path: str | None, 
+        property: PropertyModel, 
+        tenant: TenantModel, 
+        real_estate: RealEstateModel | None, 
+        guarantee: GuaranteeModel | None
+    ) -> ContractModel:
         contract = ContractModel(
-            guarantee_type=guarantee_type,
-            rental_deposit=rental_deposit,
             rent_amount=rent_amount,
             room_name=room_name,
             status=status,
@@ -27,8 +33,7 @@ class ContractRepository(BaseRepository):
             property=property,
             tenant=tenant,
             real_estate=real_estate,
-            guarantor=guarantor,
-            bail_insurance=bail_insurance
+            guarantee=guarantee
         )
         self.db.add(contract)
         self.db.flush()
@@ -37,10 +42,18 @@ class ContractRepository(BaseRepository):
     def get_by_key(self, contract_key: str) -> ContractModel | None:
         return self.db.query(ContractModel).filter(ContractModel.key == contract_key).first()
 
-
-    def update(self, contract_model: ContractModel, guarantee_type: GuaranteeTypeModel, rental_deposit: float, rent_amount: float, room_name: str | None, status: ContractStatusModel, file_path: str | None, property: PropertyModel, tenant: TenantModel, real_estate: RealEstateModel | None, guarantor: GuarantorModel | None, bail_insurance: BailInsuranceModel | None) -> ContractModel:
-        contract_model.guarantee_type = guarantee_type
-        contract_model.rental_deposit = rental_deposit
+    def update(
+        self, 
+        contract_model: ContractModel, 
+        rent_amount: float, 
+        room_name: str | None, 
+        status: ContractStatusModel, 
+        file_path: str | None, 
+        property: PropertyModel, 
+        tenant: TenantModel, 
+        real_estate: RealEstateModel | None, 
+        guarantee: GuaranteeModel | None
+    ) -> ContractModel:
         contract_model.rent_amount = rent_amount
         contract_model.room_name = room_name
         contract_model.status = status
@@ -48,8 +61,7 @@ class ContractRepository(BaseRepository):
         contract_model.property = property
         contract_model.tenant = tenant
         contract_model.real_estate = real_estate
-        contract_model.guarantor = guarantor
-        contract_model.bail_insurance = bail_insurance
+        contract_model.guarantee = guarantee
         self.db.flush()
         return contract_model
 
@@ -79,7 +91,6 @@ class ContractRepository(BaseRepository):
                 )
             )
             query = query.reset_joinpoint()
-
 
         if room_name:
             query = query.filter(ContractModel.room_name.ilike(f"%{room_name}%"))

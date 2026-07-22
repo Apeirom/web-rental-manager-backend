@@ -5,4 +5,4 @@ class ContractStatusModel(Base):
     __tablename__ = "contract_statuses"
 
     id = Column(Integer, primary_key=True, index=True)
-    enumerator = Column(String, unique=True, nullable=False) # Ex: "Ativo", "Pendente", "Rescindido"
+    enumerator = Column(String, unique=True, nullable=False)
