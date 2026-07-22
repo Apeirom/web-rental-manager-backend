@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Depends, status, Request, HTTPException, APIRouter, UploadFile, File
+from fastapi import FastAPI, Depends, status, APIRouter, UploadFile, File
 from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Union
 
 from src.database.config import get_db, engine
 from src.utils.security import get_user_info_by_token
@@ -27,15 +27,12 @@ from src.schemas.real_estate_schema import RealEstateCreateSchema, RealEstateUpd
 from src.dto.real_estate_dto import RealEstateDTO
 from src.controller.real_estate_controller import RealEstateController
 
-from src.schemas.guarantor_schema import GuarantorCreateSchema, GuarantorUpdateSchema
-from src.dto.guarantor_dto import GuarantorDTO
-from src.controller.guarantor_controller import GuarantorController
+from src.schemas.guarantee_schema import GuaranteeSchema
+from src.dto.guarantee_dto import DepositDTO, GuarantorDTO, BailInsuranceDTO
+from src.controller.guarantee_controller import GuaranteeController
 
-from src.schemas.bail_insurance_schema import BailInsuranceCreateSchema, BailInsuranceUpdateSchema
-from src.dto.bail_insurance_dto import BailInsuranceDTO
-from src.controller.bail_insurance_controller import BailInsuranceController
 
-from src.schemas.contract_schema import ContractCreateSchema, ContractUpdateSchema
+from src.schemas.contract_schema import ContractSchema
 from src.dto.contract_dto import ContractDTO
 from src.controller.contract_controller import ContractController
 
@@ -277,122 +274,69 @@ def delete_real_estate(real_estate_key: str, db: Session = Depends(get_db)):
 
 
 
-guarantor_router = APIRouter(
-    prefix="/guarantors",
-    tags=["6. Fiadores (Guarantors)"],
+guarantee_router = APIRouter(
+    prefix="/guarantees",
+    tags=["6. Garantias (Guarantees)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
-@guarantor_router.post("", response_model=GuarantorDTO, status_code=status.HTTP_201_CREATED)
-def create_guarantor(schema: GuarantorCreateSchema, db: Session = Depends(get_db)):
-    controller = GuarantorController(db)
-    return controller.create_guarantor(schema)
+@guarantee_router.post("", response_model=Union[GuarantorDTO, DepositDTO, BailInsuranceDTO], status_code=status.HTTP_201_CREATED)
+def create_guarantee(schema: GuaranteeSchema, db: Session = Depends(get_db)):
+    return GuaranteeController(db).create_guarantee(schema)
 
-@guarantor_router.get("", response_model=PaginatedResponseDTO[GuarantorDTO])
-def list_guarantors(
+@guarantee_router.get("", response_model=PaginatedResponseDTO[Union[GuarantorDTO, DepositDTO, BailInsuranceDTO]])
+def list_guarantees(
     skip: int = 0, 
     limit: int = 10, 
-    search_term: Optional[str] = None,
-    name: Optional[str] = None,
-    document_number: Optional[str] = None,
-    only_active_contracts: bool = False,
+    guarantee_type: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    controller = GuarantorController(db)
-    return controller.get_paginated_guarantors(skip, limit, search_term, name, document_number, only_active_contracts)
+    return GuaranteeController(db).get_paginated_guarantees(skip=skip, limit=limit, guarantee_type=guarantee_type)
 
-@guarantor_router.get("/{guarantor_key}", response_model=GuarantorDTO)
-def get_guarantor(guarantor_key: str, db: Session = Depends(get_db)):
-    controller = GuarantorController(db)
-    return controller.get_guarantor(guarantor_key)
+@guarantee_router.get("/{guarantee_key}", response_model=Union[GuarantorDTO, DepositDTO, BailInsuranceDTO])
+def get_guarantee(guarantee_key: str, db: Session = Depends(get_db)):
+    return GuaranteeController(db).get_guarantee(guarantee_key)
 
-@guarantor_router.put("/{guarantor_key}", response_model=GuarantorDTO)
-def update_guarantor(guarantor_key: str, schema: GuarantorUpdateSchema, db: Session = Depends(get_db)):
-    controller = GuarantorController(db)
-    return controller.update_guarantor(guarantor_key, schema)
+@guarantee_router.put("/{guarantee_key}", response_model=Union[GuarantorDTO, DepositDTO, BailInsuranceDTO])
+def update_guarantee(guarantee_key: str, schema: GuaranteeSchema, db: Session = Depends(get_db)):
+    return GuaranteeController(db).update_guarantee(guarantee_key, schema)
 
-@guarantor_router.delete("/{guarantor_key}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_guarantor(guarantor_key: str, db: Session = Depends(get_db)):
-    controller = GuarantorController(db)
-    controller.delete_guarantor(guarantor_key)
-
-
-
-bail_insurance_router = APIRouter(
-    prefix="/bail-insurances",
-    tags=["7. Seguros Fiança (Bail Insurances)"],
-    dependencies=[Depends(bearer_scheme)]
-)
-
-@bail_insurance_router.post("", response_model=BailInsuranceDTO, status_code=status.HTTP_201_CREATED)
-def create_bail_insurance(schema: BailInsuranceCreateSchema, db: Session = Depends(get_db)):
-    controller = BailInsuranceController(db)
-    return controller.create_bail_insurance(schema)
-
-@bail_insurance_router.get("", response_model=PaginatedResponseDTO[BailInsuranceDTO])
-def list_bail_insurances(
-    skip: int = 0, 
-    limit: int = 10, 
-    search_term: Optional[str] = None,
-    insurance_company: Optional[str] = None,
-    validity: Optional[str] = None,
-    only_active_contracts: bool = False,
-    db: Session = Depends(get_db)
-):
-    controller = BailInsuranceController(db)
-    return controller.get_paginated_bail_insurances(skip, limit, search_term, insurance_company, validity, only_active_contracts)
-
-@bail_insurance_router.get("/{bail_insurance_key}", response_model=BailInsuranceDTO)
-def get_bail_insurance(bail_insurance_key: str, db: Session = Depends(get_db)):
-    controller = BailInsuranceController(db)
-    return controller.get_bail_insurance(bail_insurance_key)
-
-@bail_insurance_router.put("/{bail_insurance_key}", response_model=BailInsuranceDTO)
-def update_bail_insurance(bail_insurance_key: str, schema: BailInsuranceUpdateSchema, db: Session = Depends(get_db)):
-    controller = BailInsuranceController(db)
-    return controller.update_bail_insurance(bail_insurance_key, schema)
-
-@bail_insurance_router.delete("/{bail_insurance_key}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_bail_insurance(bail_insurance_key: str, db: Session = Depends(get_db)):
-    controller = BailInsuranceController(db)
-    controller.delete_bail_insurance(bail_insurance_key)
+@guarantee_router.delete("/{guarantee_key}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_guarantee(guarantee_key: str, db: Session = Depends(get_db)):
+    GuaranteeController(db).delete_guarantee(guarantee_key)
 
 
 
 contract_router = APIRouter(
     prefix="/contracts",
-    tags=["8. Contratos (Contracts)"],
+    tags=["7. Contratos (Contracts)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
 @contract_router.post("", response_model=ContractDTO, status_code=status.HTTP_201_CREATED)
 def create_contract(
-    schema: ContractCreateSchema, 
+    schema: ContractSchema, 
     db: Session = Depends(get_db),
     current_user_data: dict = Depends(get_user_info_by_token)
 ):
-    controller = ContractController(db)
-    return controller.create_contract(schema, current_user_data)
+    return ContractController(db).create_contract(schema, current_user_data)
 
 @contract_router.get("/{contract_key}", response_model=ContractDTO)
 def get_contract(contract_key: str, db: Session = Depends(get_db)):
-    controller = ContractController(db)
-    return controller.get_contract(contract_key)
+    return ContractController(db).get_contract(contract_key)
 
 @contract_router.put("/{contract_key}", response_model=ContractDTO)
 def update_contract(
     contract_key: str, 
-    schema: ContractUpdateSchema, 
+    schema: ContractSchema, 
     db: Session = Depends(get_db),
     current_user_data: dict = Depends(get_user_info_by_token)
 ):
-    controller = ContractController(db)
-    return controller.update_contract(contract_key, schema, current_user_data)
+    return ContractController(db).update_contract(contract_key, schema, current_user_data)
 
 @contract_router.delete("/{contract_key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_contract(contract_key: str, db: Session = Depends(get_db)):
-    controller = ContractController(db)
-    controller.delete_contract(contract_key)
+    ContractController(db).delete_contract(contract_key)
 
 @contract_router.post("/{contract_key}/upload-document", response_model=ContractDTO)
 def upload_contract_document(
@@ -400,9 +344,8 @@ def upload_contract_document(
     file: UploadFile = File(...), 
     db: Session = Depends(get_db)
 ):
-    controller = ContractController(db)
     file_bytes = file.file.read()
-    return controller.upload_document(
+    return ContractController(db).upload_document(
         contract_key=contract_key, 
         file_bytes=file_bytes, 
         content_type=file.content_type
@@ -420,8 +363,7 @@ def list_contracts(
     status: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    controller = ContractController(db)
-    return controller.get_paginated_contracts(
+    return ContractController(db).get_paginated_contracts(
         skip, limit, search_term, room_name, property_name, tenant_name, real_estate_name, status
     )
 
@@ -429,7 +371,7 @@ def list_contracts(
 
 payment_router = APIRouter(
     prefix="/payments",
-    tags=["9. Pagamentos (Payments)"],
+    tags=["8. Pagamentos (Payments)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -470,7 +412,7 @@ def list_payments(
 
 extract_batch_router = APIRouter(
     prefix="/extract-batches",
-    tags=["10. Lotes de Extratos (Extract Batches)"],
+    tags=["9. Lotes de Extratos (Extract Batches)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -528,7 +470,7 @@ def delete_individual_extract(batch_key: str, extract_key: str, db: Session = De
 
 analysis_router = APIRouter(
     prefix="/analyses",
-    tags=["11. Análises (Analyses)"],
+    tags=["10. Análises (Analyses)"],
     dependencies=[Depends(bearer_scheme)]
 )
 
@@ -550,8 +492,7 @@ app.include_router(users_router)
 app.include_router(tenant_router)
 app.include_router(property_router)
 app.include_router(real_estate_router)
-app.include_router(guarantor_router)
-app.include_router(bail_insurance_router)
+app.include_router(guarantee_router)
 app.include_router(contract_router)
 app.include_router(payment_router)
 app.include_router(extract_batch_router)

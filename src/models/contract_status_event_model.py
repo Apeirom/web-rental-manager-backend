@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy import Column, Integer, String, ForeignKey, JSON
-from sqlalchemy.orm import relationship  # <-- Importação necessária
+from sqlalchemy.orm import relationship
 from src.models.base import Base
 
 class ContractStatusEventModel(Base):
