@@ -11,6 +11,7 @@ class ContractModel(Base):
     rent_amount = Column(Float, nullable=False)
     room_name = Column(String, nullable=True)
     file_path = Column(String, nullable=True)
+    rental_deposit = Column(Float)
 
     property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False)
