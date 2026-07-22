@@ -4,10 +4,9 @@ from src.repository.contract_status_event_repository import ContractStatusEventR
 from src.repository.property_repository import PropertyRepository
 from src.repository.tenant_repository import TenantRepository
 from src.repository.real_estate_repository import RealEstateRepository
-from src.repository.guarantor_repository import GuarantorRepository
-from src.repository.bail_insurance_repository import BailInsuranceRepository
-from src.models import GuaranteeTypeModel, ContractStatusModel
-from src.schemas.contract_schema import ContractCreateSchema, ContractUpdateSchema
+from src.repository.guarantee_repository import GuaranteeRepository
+from src.models import ContractStatusModel
+from src.schemas.contract_schema import ContractSchema
 from src.dto.contract_dto import ContractDTO
 from src.dto.paginated_response import PaginatedResponseDTO
 from src.errors.custom_errors import ContractNotFoundError, ContractInvalidRelationError, InvalidEnumeratorError
@@ -20,15 +19,11 @@ class ContractController:
         self.property_repository = PropertyRepository(db)
         self.tenant_repository = TenantRepository(db)
         self.real_estate_repository = RealEstateRepository(db)
-        self.guarantor_repository = GuarantorRepository(db)
-        self.bail_insurance_repository = BailInsuranceRepository(db)
+        self.guarantee_repository = GuaranteeRepository(db) 
+        
         self.S3_connector = S3StorageConnector(bucket_name="contracts")
 
-    def create_contract(self, schema: ContractCreateSchema, current_user_data: dict) -> ContractDTO:
-        guarantee_type_model = self.contract_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
-        if not guarantee_type_model:
-            raise InvalidEnumeratorError(enumerator_name="Garantia", invalid_value=schema.guarantee_type)
-
+    def create_contract(self, schema: ContractSchema, current_user_data: dict) -> ContractDTO:
         contract_status_model = self.contract_repository.get_enumerator_model(ContractStatusModel, schema.status)
         if not contract_status_model:
             raise InvalidEnumeratorError(enumerator_name="Status do Contrato", invalid_value=schema.status)
@@ -47,21 +42,13 @@ class ContractController:
             if not real_estate_model:
                 raise ContractInvalidRelationError(entity_name="RealEstate", key=schema.real_estate_key)
 
-        guarantor_model = None
-        if schema.guarantor_key:
-            guarantor_model = self.guarantor_repository.get_by_key(schema.guarantor_key)
-            if not guarantor_model:
-                raise ContractInvalidRelationError(entity_name="Guarantor", key=schema.guarantor_key)
-
-        bail_insurance_model = None
-        if schema.bail_insurance_key:
-            bail_insurance_model = self.bail_insurance_repository.get_by_key(schema.bail_insurance_key)
-            if not bail_insurance_model:
-                raise ContractInvalidRelationError(entity_name="BailInsurance", key=schema.bail_insurance_key)
+        guarantee_model = None
+        if schema.guarantee_key:
+            guarantee_model = self.guarantee_repository.get_by_key(schema.guarantee_key)
+            if not guarantee_model:
+                raise ContractInvalidRelationError(entity_name="Guarantee", key=schema.guarantee_key)
 
         contract_model = self.contract_repository.create(
-            guarantee_type=guarantee_type_model,
-            rental_deposit=schema.rental_deposit,
             rent_amount=schema.rent_amount,
             room_name=schema.room_name,
             status=contract_status_model,
@@ -69,8 +56,7 @@ class ContractController:
             property=property_model,
             tenant=tenant_model,
             real_estate=real_estate_model,
-            guarantor=guarantor_model,
-            bail_insurance=bail_insurance_model
+            guarantee=guarantee_model
         )
         
         self.contract_status_event_repository.create(
@@ -89,15 +75,11 @@ class ContractController:
         contract_dto = ContractDTO.model_validate(contract_model)
 
         if contract_dto.file_path:
-                contract_dto.file_path = self.S3_connector.get_signed_url(contract_dto.file_path)
+            contract_dto.file_path = self.S3_connector.get_signed_url(contract_dto.file_path)
 
         return contract_dto
 
-    def update_contract(self, contract_key: str, schema: ContractUpdateSchema, current_user_data: dict) -> ContractDTO:
-        guarantee_type_model = self.contract_repository.get_enumerator_model(GuaranteeTypeModel, schema.guarantee_type)
-        if not guarantee_type_model:
-            raise InvalidEnumeratorError(enumerator_name="Garantia", invalid_value=schema.guarantee_type)
-
+    def update_contract(self, contract_key: str, schema: ContractSchema, current_user_data: dict) -> ContractDTO:
         contract_status_model = self.contract_repository.get_enumerator_model(ContractStatusModel, schema.status)
         if not contract_status_model:
             raise InvalidEnumeratorError(enumerator_name="Status do Contrato", invalid_value=schema.status)
@@ -120,24 +102,20 @@ class ContractController:
             if not real_estate_model:
                 raise ContractInvalidRelationError(entity_name="RealEstate", key=schema.real_estate_key)
 
-        guarantor_model = None
-        if schema.guarantor_key:
-            guarantor_model = self.guarantor_repository.get_by_key(schema.guarantor_key)
-            if not guarantor_model:
-                raise ContractInvalidRelationError(entity_name="Guarantor", key=schema.guarantor_key)
+        new_guarantee_model = None
+        if schema.guarantee_key:
+            new_guarantee_model = self.guarantee_repository.get_by_key(schema.guarantee_key)
+            if not new_guarantee_model:
+                raise ContractInvalidRelationError(entity_name="Guarantee", key=schema.guarantee_key)
 
-        bail_insurance_model = None
-        if schema.bail_insurance_key:
-            bail_insurance_model = self.bail_insurance_repository.get_by_key(schema.bail_insurance_key)
-            if not bail_insurance_model:
-                raise ContractInvalidRelationError(entity_name="BailInsurance", key=schema.bail_insurance_key)
+        if contract_model.guarantee and contract_model.guarantee.key != schema.guarantee_key:
+            old_guarantee = contract_model.guarantee
+            self.guarantee_repository.delete(old_guarantee) 
 
         old_status_enumerator = contract_model.status.enumerator
 
         updated_model = self.contract_repository.update(
             contract_model=contract_model,
-            guarantee_type=guarantee_type_model,
-            rental_deposit=schema.rental_deposit,
             rent_amount=schema.rent_amount,
             room_name=schema.room_name,
             status=contract_status_model,
@@ -145,8 +123,7 @@ class ContractController:
             property=property_model,
             tenant=tenant_model,
             real_estate=real_estate_model,
-            guarantor=guarantor_model,
-            bail_insurance=bail_insurance_model
+            guarantee=new_guarantee_model
         )
 
         if old_status_enumerator != schema.status:
@@ -162,6 +139,10 @@ class ContractController:
         contract_model = self.contract_repository.get_by_key(contract_key)
         if not contract_model:
             raise ContractNotFoundError(contract_key=contract_key)
+            
+        if contract_model.guarantee:
+            self.guarantee_repository.delete(contract_model.guarantee)
+            
         self.contract_repository.delete(contract_model)
 
     def get_paginated_contracts(

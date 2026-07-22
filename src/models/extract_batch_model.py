@@ -1,4 +1,3 @@
-# src/models/extract_batch_model.py
 import uuid
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship

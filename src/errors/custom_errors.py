@@ -217,3 +217,23 @@ class ExtractBatchNotFoundError(BaseAppException):
             message_pt="Lote de Extratos com KEY {extract_key} não encontrado.",
             extract_key=extract_key
         )
+
+class DepositNotFoundError(BaseAppException):
+    def __init__(self, deposit_key: str):
+        super().__init__(
+            status_code=404,
+            code="RM-0023",
+            message_en="Deposit with KEY {deposit_key} not found.",
+            message_pt="Depósito com KEY {deposit_key} não encontrado.",
+            deposit_key=deposit_key
+        )
+
+class GuaranteeNotFoundError(BaseAppException):
+    def __init__(self, guarantee_key: str):
+        super().__init__(
+            status_code=404,
+            code="RM-0024",
+            message_en="Guarantee with KEY {guarantee_key} not found.",
+            message_pt="Garantia com KEY {guarantee_key} não encontrada.",
+            guarantee_key=guarantee_key
+        )
