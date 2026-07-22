@@ -1,17 +1,18 @@
 import uuid
-from sqlalchemy import Boolean, Column, Date, Integer, String, Float, ForeignKey
+from sqlalchemy import Boolean, Column, Date, Integer, String, Float, ForeignKey, Enum
 from src.models.base import Base
+from src.models.guarantee_type_model import GuaranteeTypeEnum
 
 class GuaranteeModel(Base):
     __tablename__ = "guarantees"
 
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
-    type = Column(String(50), nullable=False)
+    type = Column(Enum(GuaranteeTypeEnum), nullable=False)
 
     __mapper_args__ = {
         "polymorphic_on": type,
-        "polymorphic_identity": "base",
+        "polymorphic_identity": GuaranteeTypeEnum.BASE,
     }
 
 class DepositModel(GuaranteeModel):
@@ -22,7 +23,7 @@ class DepositModel(GuaranteeModel):
     paid_in_cash = Column(Boolean, default=False)
     deposit_date = Column(Date, nullable=True)
 
-    __mapper_args__ = {"polymorphic_identity": "deposit"}
+    __mapper_args__ = {"polymorphic_identity": GuaranteeTypeEnum.DEPOSIT}
 
 class GuarantorModel(GuaranteeModel):
     __tablename__ = "guarantee_guarantors"
@@ -31,7 +32,7 @@ class GuarantorModel(GuaranteeModel):
     name = Column(String, nullable=False)
     document_number = Column(String, nullable=False)
 
-    __mapper_args__ = {"polymorphic_identity": "guarantor"}
+    __mapper_args__ = {"polymorphic_identity": GuaranteeTypeEnum.GUARANTOR}
 
 class BailInsuranceModel(GuaranteeModel):
     __tablename__ = "guarantee_bail_insurances"
@@ -41,4 +42,4 @@ class BailInsuranceModel(GuaranteeModel):
     validity = Column(String, nullable=False)
     insurance_company = Column(String, nullable=False)
 
-    __mapper_args__ = {"polymorphic_identity": "bail_insurance"}
+    __mapper_args__ = {"polymorphic_identity": GuaranteeTypeEnum.BAIL_INSURANCE}
