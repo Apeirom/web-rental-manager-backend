@@ -140,9 +140,6 @@ class ContractController:
         if not contract_model:
             raise ContractNotFoundError(contract_key=contract_key)
             
-        if contract_model.guarantee:
-            self.guarantee_repository.delete(contract_model.guarantee)
-            
         self.contract_repository.delete(contract_model)
 
     def get_paginated_contracts(

@@ -32,3 +32,4 @@ O projeto segue os princípios de **Clean Architecture** e **Separation of Conce
 └── 📄 app.py        # Ponto de entrada, definição das rotas e injeção de dependências
 
 uvicorn src.app:app --reload
+https://web-retal-manager-backend.onrender.com/docs
