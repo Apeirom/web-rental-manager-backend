@@ -11,17 +11,6 @@ class ExtractModel(Base):
     month_ref = Column(Integer, nullable=False)
     year_ref = Column(Integer, nullable=False)
     
-    rent_amount = Column(Float, default=0.0, nullable=False)
-    iptu = Column(Float, default=0.0, nullable=False)
-    water = Column(Float, default=0.0, nullable=False)
-    maintenance = Column(Float, default=0.0, nullable=False)
-    agreement = Column(Float, default=0.0, nullable=False)
-    penalty = Column(Float, default=0.0, nullable=False)
-    interest = Column(Float, default=0.0, nullable=False)
-    other_revenues = Column(Float, default=0.0, nullable=False)
-
-    administration_fee = Column(Float, default=0.0, nullable=False)
-    bank_fee = Column(Float, default=0.0, nullable=False)
     net_transfer = Column(Float, default=0.0, nullable=False)
 
     extract_batch_id = Column(Integer, ForeignKey("extract_batches.id"), nullable=False)
@@ -29,3 +18,5 @@ class ExtractModel(Base):
 
     contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
     contract = relationship("ContractModel")
+
+    items = relationship("ExtractItemModel", back_populates="extract", cascade="all, delete-orphan")

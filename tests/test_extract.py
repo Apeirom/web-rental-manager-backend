@@ -25,11 +25,12 @@ def test_create_extract_batch_success(auth_client, base_contract_key):
             {
                 "month_ref": 1,
                 "year_ref": 2027,
-                "rent_amount": 1000.00,
-                "iptu": 150.00,
-                "water": 50.00,
-                "agreement": 0.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Aluguel", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False},
+                    {"category": "iptu", "description": "IPTU", "amount": 150.00, "is_credit": False, "is_withheld_at_source": True},
+                    {"category": "water", "description": "Água", "amount": 50.00, "is_credit": False, "is_withheld_at_source": True}
+                ]
             }
         ]
     }
@@ -39,7 +40,7 @@ def test_create_extract_batch_success(auth_client, base_contract_key):
     res_json = response.json()
     assert "key" in res_json
     assert len(res_json["extracts"]) == 1
-    assert res_json["extracts"][0]["iptu"] == 150.00
+    assert len(res_json["extracts"][0]["items"]) == 3
     assert res_json["extracts"][0]["contract"]["key"] == base_contract_key
     assert "total_net_transfer" in res_json
 
@@ -49,7 +50,8 @@ def test_create_extract_batch_invalid_contract(auth_client):
             {
                 "month_ref": 2,
                 "year_ref": 2027,
-                "contract_key": "invalid-contract-key"
+                "contract_key": "invalid-contract-key",
+                "items": []
             }
         ]
     }
@@ -63,8 +65,10 @@ def test_get_all_extract_batches(auth_client, base_contract_key):
             {
                 "month_ref": 6,
                 "year_ref": 2027,
-                "rent_amount": 1000.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Aluguel", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False}
+                ]
             }
         ]
     }
@@ -89,8 +93,10 @@ def test_get_individual_extract_from_batch(auth_client, base_contract_key):
             {
                 "month_ref": 3,
                 "year_ref": 2027,
-                "rent_amount": 1000.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Aluguel", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False}
+                ]
             }
         ]
     }
@@ -108,14 +114,17 @@ def test_update_extract_batch(auth_client, base_contract_key):
             {
                 "month_ref": 4,
                 "year_ref": 2027,
-                "rent_amount": 1000.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Aluguel", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False}
+                ]
             }
         ]
     }
     create_res = auth_client.post("/extract-batches", json=payload)
     batch_key = create_res.json()["key"]
     extract_key = create_res.json()["extracts"][0]["key"]
+    item_key = create_res.json()["extracts"][0]["items"][0]["key"]
 
     update_payload = {
         "extracts": [
@@ -123,21 +132,36 @@ def test_update_extract_batch(auth_client, base_contract_key):
                 "key": extract_key,
                 "month_ref": 4,
                 "year_ref": 2027,
-                "rent_amount": 1100.00,
-                "iptu": 50.00,
-                "water": 0.00,
-                "agreement": 0.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [
+                    {
+                        "key": item_key,
+                        "category": "rent", 
+                        "description": "Aluguel Atualizado", 
+                        "amount": 1100.00, 
+                        "is_credit": True, 
+                        "is_withheld_at_source": False
+                    },
+                    {
+                        "category": "iptu", 
+                        "description": "Novo IPTU", 
+                        "amount": 50.00, 
+                        "is_credit": False, 
+                        "is_withheld_at_source": True
+                    }
+                ]
             }
         ]
     }
     update_res = auth_client.put(f"/extract-batches/{batch_key}", json=update_payload)
     assert update_res.status_code == 200
-    assert update_res.json()["extracts"][0]["rent_amount"] == 1100.00
+    updated_items = update_res.json()["extracts"][0]["items"]
+    assert len(updated_items) == 2
+    assert updated_items[0]["amount"] == 1100.00
 
 def test_delete_extract_batch_preserves_payment(auth_client, base_contract_key):
     ext_res = auth_client.post("/extract-batches", json={
-        "extracts": [{"month_ref": 5, "year_ref": 2027, "rent_amount": 1000.00, "contract_key": base_contract_key}]
+        "extracts": [{"month_ref": 5, "year_ref": 2027, "contract_key": base_contract_key, "items": [{"category": "rent", "description": "Aluguel", "amount": 1000.0, "is_credit": True, "is_withheld_at_source": False}]}]
     })
     batch_key = ext_res.json()["key"]
 
@@ -164,8 +188,8 @@ def test_upload_extract_batch_receipt(auth_client, base_contract_key):
             {
                 "month_ref": 10,
                 "year_ref": 2026,
-                "rent_amount": 1000.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [{"category": "rent", "description": "Aluguel", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False}]
             }
         ]
     }
@@ -183,7 +207,7 @@ def test_upload_extract_batch_receipt(auth_client, base_contract_key):
 
 def test_reconcile_extract_batch_pending_no_autolink(auth_client, base_contract_key):
     extract_res = auth_client.post("/extract-batches", json={
-        "extracts": [{"month_ref": 11, "year_ref": 2026, "rent_amount": 1900.00, "contract_key": base_contract_key}]
+        "extracts": [{"month_ref": 11, "year_ref": 2026, "contract_key": base_contract_key, "items": [{"category": "rent", "description": "Aluguel", "amount": 1900.00, "is_credit": True, "is_withheld_at_source": False}]}]
     })
     batch_key = extract_res.json()["key"]
     
@@ -200,7 +224,7 @@ def test_reconcile_extract_batch_pending_no_autolink(auth_client, base_contract_
 
 def test_reconcile_extract_batch_already_linked(auth_client, base_contract_key):
     extract_res = auth_client.post("/extract-batches", json={
-        "extracts": [{"month_ref": 12, "year_ref": 2026, "rent_amount": 1900.00, "contract_key": base_contract_key}]
+        "extracts": [{"month_ref": 12, "year_ref": 2026, "contract_key": base_contract_key, "items": [{"category": "rent", "description": "Aluguel", "amount": 1900.00, "is_credit": True, "is_withheld_at_source": False}]}]
     })
     batch_key = extract_res.json()["key"]
     
@@ -227,8 +251,8 @@ def test_update_extract_batch_delete_and_add_calculates_total_correctly(auth_cli
             {
                 "month_ref": 1,
                 "year_ref": 2026,
-                "rent_amount": 2000.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [{"category": "rent", "description": "Aluguel", "amount": 2000.0, "is_credit": True, "is_withheld_at_source": False}]
             }
         ]
     }
@@ -244,8 +268,8 @@ def test_update_extract_batch_delete_and_add_calculates_total_correctly(auth_cli
             {
                 "month_ref": 2,
                 "year_ref": 2026,
-                "rent_amount": 3000.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [{"category": "rent", "description": "Aluguel", "amount": 3000.0, "is_credit": True, "is_withheld_at_source": False}]
             }
         ]
     }
@@ -268,14 +292,14 @@ def test_update_extract_batch_complex_scenario_calculates_total_correctly(auth_c
             {
                 "month_ref": 1,
                 "year_ref": 2026,
-                "rent_amount": 1000.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [{"category": "rent", "description": "Aluguel 1", "amount": 1000.0, "is_credit": True, "is_withheld_at_source": False}]
             },
             {
                 "month_ref": 1,
                 "year_ref": 2026,
-                "rent_amount": 2000.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [{"category": "rent", "description": "Aluguel 2", "amount": 2000.0, "is_credit": True, "is_withheld_at_source": False}]
             }
         ]
     }
@@ -285,6 +309,7 @@ def test_update_extract_batch_complex_scenario_calculates_total_correctly(auth_c
     create_data = create_res.json()
     batch_key = create_data["key"]
     extract_to_keep_key = create_data["extracts"][0]["key"]
+    item_to_keep_key = create_data["extracts"][0]["items"][0]["key"]
 
     update_payload = {
         "extracts": [
@@ -292,14 +317,14 @@ def test_update_extract_batch_complex_scenario_calculates_total_correctly(auth_c
                 "key": extract_to_keep_key,
                 "month_ref": 1,
                 "year_ref": 2026,
-                "rent_amount": 1500.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [{"key": item_to_keep_key, "category": "rent", "description": "Aluguel 1 Modificado", "amount": 1500.0, "is_credit": True, "is_withheld_at_source": False}]
             },
             {
                 "month_ref": 2,
                 "year_ref": 2026,
-                "rent_amount": 3000.00,
-                "contract_key": base_contract_key
+                "contract_key": base_contract_key,
+                "items": [{"category": "rent", "description": "Aluguel Novo", "amount": 3000.0, "is_credit": True, "is_withheld_at_source": False}]
             }
         ]
     }
