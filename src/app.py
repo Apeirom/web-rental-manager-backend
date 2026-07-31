@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, status, APIRouter, UploadFile, File
+from fastapi import FastAPI, Depends, Query, status, APIRouter, UploadFile, File
 from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -480,10 +480,19 @@ def get_income_tax(
     start_month: int, 
     end_year: int, 
     end_month: int, 
+    owner_id: Optional[int] = Query(None),
+    tax_rate: Optional[float] = Query(27.5),
     db: Session = Depends(get_db)
 ):
     controller = AnalysisController(db)
-    return controller.generate_income_tax_report(start_year, start_month, end_year, end_month)
+    return controller.generate_income_tax_report(
+        start_year=start_year, 
+        start_month=start_month, 
+        end_year=end_year, 
+        end_month=end_month,
+        owner_id=owner_id,
+        tax_rate=tax_rate
+    )
 
 
 

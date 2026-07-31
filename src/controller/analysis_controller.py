@@ -1,36 +1,67 @@
 from sqlalchemy.orm import Session
 from src.repository.extract_repository import ExtractRepository
-from src.dto.analysis_dto import IncomeTaxRowDTO
+from src.models import ExtractItemModel
+from src.dto.analysis_dto import IncomeTaxRowDTO, ExtractItemDTO
 
 class AnalysisController:
     def __init__(self, db: Session):
         self.extract_repository = ExtractRepository(db)
 
-    def generate_income_tax_report(self, start_year: int, start_month: int, end_year: int, end_month: int) -> list[IncomeTaxRowDTO]:
-        extracts = self.extract_repository.get_by_date_range_with_relations(start_year, start_month, end_year, end_month)
+    def generate_income_tax_report(
+        self, 
+        start_year: int, 
+        start_month: int, 
+        end_year: int, 
+        end_month: int,
+        owner_id: int | None = None,
+        tax_rate: float | None = None
+    ) -> list[IncomeTaxRowDTO]:
+        
+        effective_tax_rate = tax_rate if tax_rate is not None else 27.5
+        
+        tax_multiplier = effective_tax_rate / 100.0 if effective_tax_rate > 1 else effective_tax_rate
+        display_tax_rate = effective_tax_rate if effective_tax_rate > 1 else effective_tax_rate * 100
+
+        extracts = self.extract_repository.get_by_date_range_with_relations(
+            start_year, start_month, end_year, end_month, owner_id
+        )
         
         report = []
+        
+        credit_categories = ["rent", "penalty", "interest", "other_revenues"]
         
         for extract in extracts:
             contract = extract.contract
             tenant = contract.tenant
             property_obj = contract.property
-            real_estate = contract.real_estate
             
-            rent = extract.rent_amount or 0.0
-            agreement = extract.agreement or 0.0
-            iptu = extract.iptu or 0.0
-            water = extract.water or 0.0
+            total_credits = 0.0
+            total_debits = 0.0
+            used_items = []
             
-            commission_rate = real_estate.commission if real_estate else 0.0
+            for item in extract.items:
+                category_enum = item.category.enumerator
+                amount = abs(item.amount)
+                
+                if category_enum in credit_categories:
+                    total_credits += amount
+                    item_type = "credit"
+                else:
+                    total_debits += amount
+                    item_type = "debit"
+                    
+                used_items.append(ExtractItemDTO(
+                    category=category_enum,
+                    amount=amount,
+                    type=item_type
+                ))
             
-            base_income = rent + agreement
-            commission_amount = base_income * commission_rate
-            net_income = base_income - commission_amount
+            net_base = total_credits - total_debits
+            calculated_tax = net_base * tax_multiplier if net_base > 0 else 0.0
+            calculated_tax = round(calculated_tax,2)
 
             tenat_document_number = tenant.document_number
             doc_type = "CNPJ" if len(tenat_document_number) > 14 else "CPF"
-            
             room_info = f" - {contract.room_name}" if contract.room_name else ""
 
             row = IncomeTaxRowDTO(
@@ -38,13 +69,12 @@ class AnalysisController:
                 tenant_name=tenant.name,
                 tenat_document_number=tenat_document_number,
                 tenat_document_type=doc_type,
-                property_details=f"{property_obj.property_name}-{room_info}",
-                rent_amount=rent,
-                iptu=iptu,
-                water=water,
-                agreement=agreement,
-                commission_amount=commission_amount,
-                net_income=net_income
+                property_details=f"{property_obj.property_name}{room_info}",
+                total_credits=total_credits,
+                total_debits=total_debits,
+                tax_rate_used=display_tax_rate,
+                calculated_tax=calculated_tax,
+                items=used_items
             )
             report.append(row)
             

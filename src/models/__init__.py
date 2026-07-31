@@ -10,3 +10,5 @@ from src.models.real_estate_model import RealEstateModel
 from src.models.tenant_model import TenantModel
 from src.models.user_model import UserModel
 from src.models.extract_batch_model import ExtractBatchModel
+from src.models.extract_item_model import ExtractItemModel
+from src.models.extract_item_category_model import ExtractItemCategoryModel
