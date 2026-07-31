@@ -1,4 +1,10 @@
 from pydantic import BaseModel
+from typing import List, Optional
+
+class ExtractItemDTO(BaseModel):
+    category: str
+    amount: float
+    type: str
 
 class IncomeTaxRowDTO(BaseModel):
     reference_date: str
@@ -6,9 +12,10 @@ class IncomeTaxRowDTO(BaseModel):
     tenat_document_number: str
     tenat_document_type: str
     property_details: str
-    rent_amount: float
-    iptu: float
-    water: float
-    agreement: float
-    commission_amount: float
-    net_income: float
+
+    total_credits: float
+    total_debits: float
+    tax_rate_used: float
+    calculated_tax: float
+    
+    items: List[ExtractItemDTO]
