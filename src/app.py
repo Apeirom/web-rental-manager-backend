@@ -421,6 +421,11 @@ def create_extract_batch(schema: ExtractBatchCreateSchema, db: Session = Depends
     controller = ExtractBatchController(db)
     return controller.create_batch(schema)
 
+@extract_batch_router.get("/{batch_key}", response_model=ExtractBatchDTO)
+def get_extract_batch(batch_key: str, db: Session = Depends(get_db)):
+    controller = ExtractBatchController(db)
+    return controller.get_batch(batch_key)
+
 @extract_batch_router.get("", response_model=PaginatedResponseDTO[ExtractBatchDTO])
 def list_extract_batches(
     skip: int = 0, 
