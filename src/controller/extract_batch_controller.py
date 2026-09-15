@@ -191,6 +191,16 @@ class ExtractBatchController:
         self.extract_batch_repository.delete(batch_model)
         self.extract_batch_repository.commit()
 
+    def get_batch_by_key(self, batch_key: str) -> ExtractBatchDTO:
+        batch_model = self.extract_batch_repository.get_by_key(batch_key)
+        if not batch_model:
+            raise ExtractBatchNotFoundError(batch_key)
+        
+        dto = ExtractBatchDTO.model_validate(batch_model)
+        if dto.file_path:
+            dto.file_path = self.S3_connector.get_signed_url(dto.file_path)
+        return dto
+
     def get_paginated_batches(self, skip: int, limit: int, search_term: str = None, only_active: bool = False, is_reconciled: bool = None) -> PaginatedResponseDTO[ExtractBatchDTO]:
         total, batch_models = self.extract_batch_repository.get_paginated(skip, limit, search_term, only_active, is_reconciled)
         
