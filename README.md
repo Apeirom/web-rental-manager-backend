@@ -27,9 +27,12 @@ O projeto segue os princípios de **Clean Architecture** e **Separation of Conce
 ├── 📁 middlewares/  # Interceptadores globais (ex: Validação de Token JWT)
 ├── 📁 models/       # Entidades do SQLAlchemy (O espelho das tabelas do Banco)
 ├── 📁 repository/   # Camada de abstração do Banco de Dados (Consultas, Inserts, Updates)
+├── 📁 routers/      # Definição de endpoints e rotas modulares (ex: tenant_router)
 ├── 📁 schemas/      # Contratos de Entrada (Validação de payload via Pydantic)
-├── 📁 utils/        # Ferramentas auxiliares (Segurança, Conexão com o BD)
-└── 📄 app.py        # Ponto de entrada, definição das rotas e injeção de dependências
+├── 📁 utils/        # Ferramentas auxiliares (Segurança, Conexão com o BD, Rate Limit)
+└── 📄 app.py        # Ponto de entrada do sistema, orquestração de middlewares e registro das rotas
+
+---
 
 uvicorn src.app:app --reload
 https://web-retal-manager-backend.onrender.com/docs
