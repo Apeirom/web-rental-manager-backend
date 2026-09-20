@@ -118,7 +118,7 @@ class ContractController:
         old_status_enumerator = contract_model.status.enumerator
 
         file_path_to_save = contract_model.file_path
-        fields_set = getattr(schema, 'model_fields_set', getattr(schema, '__fields_set__', set()))
+        fields_set = schema.model_fields_set
 
         if "file_path" in fields_set:
             if schema.file_path is None or schema.file_path == "":
