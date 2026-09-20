@@ -1,0 +1,15 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Executa a cada 2 dias, às 10:00 da manhã (UTC)
+    - cron: "0 10 */2 * *"
+  workflow_dispatch: # Adiciona um botão no GitHub para você testar manualmente
+
+jobs:
+  ping-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar requisição na rota Health
+        # O parâmetro -f faz o curl falhar o job no GitHub se a API retornar erro (como o seu 503)
+        run: curl -f -s --max-time 120 --retry 3 --retry-delay 5 https://web-retal-manager-backend.onrender.com/health
