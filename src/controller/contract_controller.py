@@ -11,6 +11,7 @@ from src.dto.contract_dto import ContractDTO
 from src.dto.paginated_response import PaginatedResponseDTO
 from src.errors.custom_errors import ContractNotFoundError, ContractInvalidRelationError, InvalidEnumeratorError
 from src.connectors.S3_storage_connector import S3StorageConnector
+from src.utils.file_handler import verify_file_path
 
 class ContractController:
     def __init__(self, db: Session):
@@ -48,11 +49,13 @@ class ContractController:
             if not guarantee_model:
                 raise ContractInvalidRelationError(entity_name="Guarantee", key=schema.guarantee_key)
 
+        safe_file_path = schema.file_path if verify_file_path(schema.file_path) else None
+
         contract_model = self.contract_repository.create(
             rent_amount=schema.rent_amount,
             room_name=schema.room_name,
             status=contract_status_model,
-            file_path=schema.file_path,
+            file_path=safe_file_path,
             property=property_model,
             tenant=tenant_model,
             real_estate=real_estate_model,
@@ -114,12 +117,22 @@ class ContractController:
 
         old_status_enumerator = contract_model.status.enumerator
 
+        file_path_to_save = contract_model.file_path
+        fields_set = schema.model_fields_set
+
+        if "file_path" in fields_set:
+            if schema.file_path is None or schema.file_path == "":
+                file_path_to_save = None
+            elif verify_file_path(schema.file_path):
+                file_path_to_save = schema.file_path
+
+
         updated_model = self.contract_repository.update(
             contract_model=contract_model,
             rent_amount=schema.rent_amount,
             room_name=schema.room_name,
             status=contract_status_model,
-            file_path=schema.file_path,
+            file_path=file_path_to_save,
             property=property_model,
             tenant=tenant_model,
             real_estate=real_estate_model,
@@ -134,7 +147,7 @@ class ContractController:
             )
 
         return ContractDTO.model_validate(updated_model)
-
+    
     def delete_contract(self, contract_key: str) -> None:
         contract_model = self.contract_repository.get_by_key(contract_key)
         if not contract_model:
