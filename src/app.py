@@ -12,6 +12,7 @@ from src.routers import (
     auth_router,
     users_router,
     tenant_router,
+    owner_router,        
     property_router,
     real_estate_router,
     guarantee_router,
@@ -48,12 +49,10 @@ app.add_middleware(
 
 app.add_middleware(AuthMiddleware)
 
-
 @app.get("/", tags=["0. Monitoramento e Sistema"])
 @limiter.limit("100/minute")
 def root(request: Request):
     return {"status": "Rental Manager API is online"}
-
 
 @app.get("/health", tags=["0. Monitoramento e Sistema"])
 @limiter.limit("20/minute")
@@ -61,10 +60,10 @@ def health_check(request: Request, db: Session = Depends(get_db)):
     controller = HealthController(db)
     return controller.check_status()
 
-
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(tenant_router)
+app.include_router(owner_router)
 app.include_router(property_router)
 app.include_router(real_estate_router)
 app.include_router(guarantee_router)
