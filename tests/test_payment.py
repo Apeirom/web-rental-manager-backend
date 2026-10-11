@@ -1,19 +1,3 @@
-import pytest
-
-@pytest.fixture
-def base_contract_key(auth_client):
-    tenant_res = auth_client.post("/tenants", json={"name": "Payment Tenant", "document_number": "444.444.444-44"})
-    prop_res = auth_client.post("/properties", json={"property_name": "Payment Prop", "owner_name": "Owner", "address": "789 St", "room_count": 2})
-    
-    contract_res = auth_client.post("/contracts", json={
-        "guarantee_type": "deposit",
-        "rental_deposit": 2000.00,
-        "rent_amount": 1000.00,
-        "property_key": prop_res.json()["key"],
-        "tenant_key": tenant_res.json()["key"]
-    })
-    return contract_res.json()["key"]
-
 def test_create_payment_success(auth_client):
     payload = {
         "payment_date": "2026-05-17",
@@ -72,33 +56,28 @@ def test_get_payment_by_key(auth_client):
     assert response.status_code == 200
     assert response.json()["amount"] == 1200.00
 
-def test_update_payment_link_and_unlink(auth_client, base_contract_key):
-    ext_payload = {
-        "extracts": [
+def test_update_payment_link_and_unlink(
+    auth_client, base_contract_key, extract_batch_factory, payment_factory
+):
+    extract_batch = extract_batch_factory(
+        contract_key=base_contract_key,
+        month_ref=1,
+        year_ref=2026,
+        items=[
             {
-                "month_ref": 1, 
-                "year_ref": 2026, 
-                "contract_key": base_contract_key,
-                "items": [
-                    {
-                        "category": "rent", 
-                        "description": "Aluguel", 
-                        "amount": 1300.00, 
-                        "is_credit": True, 
-                        "is_withheld_at_source": False
-                    }
-                ]
+                "category": "rent",
+                "description": "Aluguel",
+                "amount": 1300.00,
+                "is_credit": True,
+                "is_withheld_at_source": False,
             }
-        ]
-    }
-    
-    ext_res = auth_client.post("/extract-batches", json=ext_payload)
-    assert ext_res.status_code == 201
-    batch_key = ext_res.json()["key"]
+        ],
+    )
+    batch_key = extract_batch["key"]
 
-    pay_res = auth_client.post("/payments", json={"payment_date": "2026-01-10", "amount": 1300.00})
-    assert pay_res.status_code == 201
-    payment_key = pay_res.json()["key"]
+    payment_key = payment_factory(
+        payment_date="2026-01-10", amount=1300.00
+    )["key"]
 
     link_res = auth_client.put(f"/payments/{payment_key}", json={
         "payment_date": "2026-01-10", 
@@ -118,13 +97,10 @@ def test_update_payment_link_and_unlink(auth_client, base_contract_key):
     assert unlink_res.json()["status"] == "unlinked"
     assert unlink_res.json()["extract_batch_key"] is None
 
-def test_delete_payment(auth_client):
-    payload = {
-        "payment_date": "2026-09-17",
-        "amount": 1400.00
-    }
-    create_res = auth_client.post("/payments", json=payload)
-    payment_key = create_res.json()["key"]
+def test_delete_payment(auth_client, payment_factory):
+    payment_key = payment_factory(
+        payment_date="2026-09-17", amount=1400.00
+    )["key"]
 
     delete_res = auth_client.delete(f"/payments/{payment_key}")
     assert delete_res.status_code == 204

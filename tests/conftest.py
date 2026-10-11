@@ -11,6 +11,8 @@ from src.database.config import get_db
 from src.utils.security import create_access_token
 from tests.utils.database_setup import seed_enumerators
 
+pytest_plugins = ("tests.fixtures.shared",)
+
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
