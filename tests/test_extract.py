@@ -1,23 +1,4 @@
-import pytest
 from unittest.mock import patch
-
-@pytest.fixture
-def base_contract_key(auth_client):
-    tenant_res = auth_client.post("/tenants", json={"name": "Extract Tenant", "document_number": "555.555.555-55"})
-    tenant_key = tenant_res.json()["key"]
-
-    prop_res = auth_client.post("/properties", json={"property_name": "Extract Prop", "owner_name": "Owner", "address": "789 St", "room_count": 2})
-    property_key = prop_res.json()["key"]
-
-    contract_payload = {
-        "guarantee_type": "deposit",
-        "rental_deposit": 2000.00,
-        "rent_amount": 1000.00,
-        "property_key": property_key,
-        "tenant_key": tenant_key
-    }
-    contract_res = auth_client.post("/contracts", json=contract_payload)
-    return contract_res.json()["key"]
 
 def test_create_extract_batch_success(auth_client, base_contract_key):
     payload = {
@@ -159,20 +140,31 @@ def test_update_extract_batch(auth_client, base_contract_key):
     assert len(updated_items) == 2
     assert updated_items[0]["amount"] == 1100.00
 
-def test_delete_extract_batch_preserves_payment(auth_client, base_contract_key):
-    ext_res = auth_client.post("/extract-batches", json={
-        "extracts": [{"month_ref": 5, "year_ref": 2027, "contract_key": base_contract_key, "items": [{"category": "rent", "description": "Aluguel", "amount": 1000.0, "is_credit": True, "is_withheld_at_source": False}]}]
-    })
-    batch_key = ext_res.json()["key"]
-
-    pay_res = auth_client.post("/payments", json={"payment_date": "2027-05-10", "amount": 1000.00})
-    payment_key = pay_res.json()["key"]
-
-    auth_client.put(f"/payments/{payment_key}", json={
-        "payment_date": "2027-05-10", 
-        "amount": 1000.00, 
-        "extract_batch_key": batch_key
-    })
+def test_delete_extract_batch_preserves_payment(
+    auth_client, base_contract_key, extract_batch_factory, payment_factory
+):
+    extract_batch = extract_batch_factory(
+        contract_key=base_contract_key,
+        month_ref=5,
+        year_ref=2027,
+        items=[
+            {
+                "category": "rent",
+                "description": "Aluguel",
+                "amount": 1000.0,
+                "is_credit": True,
+                "is_withheld_at_source": False,
+            }
+        ],
+    )
+    batch_key = extract_batch["key"]
+    payment = payment_factory(
+        payment_date="2027-05-10",
+        amount=1000.00,
+        extract_batch_key=batch_key,
+        link=True,
+    )
+    payment_key = payment["key"]
 
     delete_res = auth_client.delete(f"/extract-batches/{batch_key}")
     assert delete_res.status_code == 204
@@ -205,14 +197,27 @@ def test_upload_extract_batch_receipt(auth_client, base_contract_key):
         assert response.status_code == 200
         assert response.json()["file_path"] == f"https://fake-supabase.com/extracts/{batch_key}_v1.pdf"
 
-def test_reconcile_extract_batch_pending_no_autolink(auth_client, base_contract_key):
-    extract_res = auth_client.post("/extract-batches", json={
-        "extracts": [{"month_ref": 11, "year_ref": 2026, "contract_key": base_contract_key, "items": [{"category": "rent", "description": "Aluguel", "amount": 1900.00, "is_credit": True, "is_withheld_at_source": False}]}]
-    })
-    batch_key = extract_res.json()["key"]
-    
-    payment_res = auth_client.post("/payments", json={"payment_date": "2026-11-10", "amount": 1900.00})
-    payment_key = payment_res.json()["key"]
+def test_reconcile_extract_batch_pending_no_autolink(
+    auth_client, base_contract_key, extract_batch_factory, payment_factory
+):
+    extract_batch = extract_batch_factory(
+        contract_key=base_contract_key,
+        month_ref=11,
+        year_ref=2026,
+        items=[
+            {
+                "category": "rent",
+                "description": "Aluguel",
+                "amount": 1900.00,
+                "is_credit": True,
+                "is_withheld_at_source": False,
+            }
+        ],
+    )
+    batch_key = extract_batch["key"]
+    payment_key = payment_factory(
+        payment_date="2026-11-10", amount=1900.00
+    )["key"]
 
     recon_res = auth_client.get(f"/extract-batches/{batch_key}/reconcile")
     assert recon_res.status_code == 200
@@ -222,20 +227,31 @@ def test_reconcile_extract_batch_pending_no_autolink(auth_client, base_contract_
     assert len(recon_data["candidates"]) == 1
     assert recon_data["candidates"][0]["key"] == payment_key
 
-def test_reconcile_extract_batch_already_linked(auth_client, base_contract_key):
-    extract_res = auth_client.post("/extract-batches", json={
-        "extracts": [{"month_ref": 12, "year_ref": 2026, "contract_key": base_contract_key, "items": [{"category": "rent", "description": "Aluguel", "amount": 1900.00, "is_credit": True, "is_withheld_at_source": False}]}]
-    })
-    batch_key = extract_res.json()["key"]
-    
-    payment_res = auth_client.post("/payments", json={"payment_date": "2026-12-10", "amount": 1900.00})
-    payment_key = payment_res.json()["key"]
-
-    auth_client.put(f"/payments/{payment_key}", json={
-        "payment_date": "2026-12-10", 
-        "amount": 1900.00, 
-        "extract_batch_key": batch_key
-    })
+def test_reconcile_extract_batch_already_linked(
+    auth_client, base_contract_key, extract_batch_factory, payment_factory
+):
+    extract_batch = extract_batch_factory(
+        contract_key=base_contract_key,
+        month_ref=12,
+        year_ref=2026,
+        items=[
+            {
+                "category": "rent",
+                "description": "Aluguel",
+                "amount": 1900.00,
+                "is_credit": True,
+                "is_withheld_at_source": False,
+            }
+        ],
+    )
+    batch_key = extract_batch["key"]
+    payment = payment_factory(
+        payment_date="2026-12-10",
+        amount=1900.00,
+        extract_batch_key=batch_key,
+        link=True,
+    )
+    payment_key = payment["key"]
 
     recon_res = auth_client.get(f"/extract-batches/{batch_key}/reconcile")
     assert recon_res.status_code == 200

@@ -237,3 +237,13 @@ class GuaranteeNotFoundError(BaseAppException):
             message_pt="Garantia com KEY {guarantee_key} não encontrada.",
             guarantee_key=guarantee_key
         )
+
+class OwnerNotFoundError(BaseAppException):
+    def __init__(self, owner_key: str):
+        super().__init__(
+            status_code=404,
+            code="RM-0025",
+            message_en="Owner with KEY {owner_key} not found.",
+            message_pt="Proprietário com KEY {owner_key} não encontrado.",
+            owner_key=owner_key
+        )

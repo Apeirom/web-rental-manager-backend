@@ -1,17 +1,17 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from src.models import PropertyModel, ContractModel, ContractStatusModel
+from src.models.owner_model import OwnerModel 
 from src.repository.base_repository import BaseRepository 
-
 
 class PropertyRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def create(self, property_name: str, owner_name: str, address: str, room_count: int) -> PropertyModel:
+    def create(self, property_name: str, owner_id: int, address: str, room_count: int) -> PropertyModel:
         new_property = PropertyModel(
             property_name=property_name,
-            owner_name=owner_name,
+            owner_id=owner_id,
             address=address,
             room_count=room_count
         )
@@ -34,18 +34,22 @@ class PropertyRepository(BaseRepository):
         
         query = self.db.query(PropertyModel)
 
+        if search_term or owner_name:
+            query = query.join(OwnerModel, OwnerModel.id == PropertyModel.owner_id)
+
         if search_term:
             query = query.filter(
                 or_(
                     PropertyModel.property_name.ilike(f"%{search_term}%"),
-                    PropertyModel.owner_name.ilike(f"%{search_term}%")
+                    OwnerModel.name.ilike(f"%{search_term}%") # Busca pelo nome na tabela associada
                 )
             )
 
         if property_name:
             query = query.filter(PropertyModel.property_name.ilike(f"%{property_name}%"))
+            
         if owner_name:
-            query = query.filter(PropertyModel.owner_name.ilike(f"%{owner_name}%"))
+            query = query.filter(OwnerModel.name.ilike(f"%{owner_name}%"))
 
         if only_active_contracts:
             query = query.join(ContractModel, ContractModel.property_id == PropertyModel.id) \
@@ -58,9 +62,9 @@ class PropertyRepository(BaseRepository):
 
         return total_count, items
 
-    def update(self, property_model: PropertyModel, property_name: str, owner_name: str, address: str, room_count: int) -> PropertyModel:
+    def update(self, property_model: PropertyModel, property_name: str, owner_id: int, address: str, room_count: int) -> PropertyModel:
         property_model.property_name = property_name
-        property_model.owner_name = owner_name
+        property_model.owner_id = owner_id
         property_model.address = address
         property_model.room_count = room_count
         self.db.flush()
