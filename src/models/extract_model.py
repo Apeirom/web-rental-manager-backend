@@ -16,7 +16,11 @@ class ExtractModel(Base):
     extract_batch_id = Column(Integer, ForeignKey("extract_batches.id"), nullable=False)
     batch = relationship("ExtractBatchModel", back_populates="extracts")
 
-    contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
-    contract = relationship("ContractModel")
+    contract_id = Column(
+        Integer,
+        ForeignKey("contracts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    contract = relationship("ContractModel", back_populates="extracts")
 
     items = relationship("ExtractItemModel", back_populates="extract", cascade="all, delete-orphan")

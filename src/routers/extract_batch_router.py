@@ -11,6 +11,7 @@ from src.dto.extract_dto import ExtractDTO
 from src.schemas.extract_batch_schema import ExtractBatchCreateSchema, ExtractBatchUpdateSchema
 from src.controller.extract_batch_controller import ExtractBatchController
 from src.controller.extract_controller import ExtractController
+from src.dependencies.authorization import require_master_user
 
 bearer_scheme = HTTPBearer()
 
@@ -48,7 +49,11 @@ def update_extract_batch(batch_key: str, schema: ExtractBatchUpdateSchema, db: S
     controller = ExtractBatchController(db)
     return controller.update_batch(batch_key, schema)
 
-@extract_batch_router.delete("/{batch_key}", status_code=status.HTTP_204_NO_CONTENT)
+@extract_batch_router.delete(
+    "/{batch_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_master_user)],
+)
 def delete_extract_batch(batch_key: str, db: Session = Depends(get_db)):
     controller = ExtractBatchController(db)
     controller.delete_batch(batch_key)
@@ -71,7 +76,11 @@ def get_individual_extract(batch_key: str, extract_key: str, db: Session = Depen
     controller = ExtractController(db)
     return controller.get_extract(batch_key, extract_key)
 
-@extract_batch_router.delete("/{batch_key}/extracts/{extract_key}", status_code=status.HTTP_204_NO_CONTENT)
+@extract_batch_router.delete(
+    "/{batch_key}/extracts/{extract_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_master_user)],
+)
 def delete_individual_extract(batch_key: str, extract_key: str, db: Session = Depends(get_db)):
     controller = ExtractController(db)
     controller.delete_extract(batch_key, extract_key)

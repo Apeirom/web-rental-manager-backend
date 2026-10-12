@@ -12,7 +12,12 @@ class ExtractBatchModel(Base):
     total_net_transfer = Column(Float, default=0.0, nullable=False)    
     file_path = Column(String, nullable=True)
 
-    payment_id = Column(Integer, ForeignKey("payments.id"), nullable=True, unique=True)
+    payment_id = Column(
+        Integer,
+        ForeignKey("payments.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True,
+    )
     payment = relationship("PaymentModel", back_populates="extract_batch", uselist=False)
 
     extracts = relationship("ExtractModel", back_populates="batch", cascade="all, delete-orphan")

@@ -6,6 +6,7 @@ from src.models import (
     GuarantorModel, 
     BailInsuranceModel
 )
+from src.repository.contract_repository import ContractRepository
 
 class GuaranteeRepository(BaseRepository):
     def __init__(self, db: Session):
@@ -81,5 +82,8 @@ class GuaranteeRepository(BaseRepository):
     
 
     def delete(self, model: GuaranteeModel) -> None:
+        contract_repository = ContractRepository(self.db)
+        contracts = contract_repository.get_by_guarantee_id(model.id)
+        contract_repository.delete_many(contracts)
         self.db.delete(model)
         self.db.flush()

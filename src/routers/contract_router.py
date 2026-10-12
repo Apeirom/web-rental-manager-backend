@@ -10,6 +10,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.contract_dto import ContractDTO
 from src.schemas.contract_schema import ContractSchema
 from src.controller.contract_controller import ContractController
+from src.dependencies.authorization import require_master_user
 
 bearer_scheme = HTTPBearer()
 
@@ -40,7 +41,11 @@ def update_contract(
 ):
     return ContractController(db).update_contract(contract_key, schema, current_user_data)
 
-@contract_router.delete("/{contract_key}", status_code=status.HTTP_204_NO_CONTENT)
+@contract_router.delete(
+    "/{contract_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_master_user)],
+)
 def delete_contract(contract_key: str, db: Session = Depends(get_db)):
     ContractController(db).delete_contract(contract_key)
 

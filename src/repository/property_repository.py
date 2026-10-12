@@ -3,6 +3,7 @@ from sqlalchemy import or_
 from src.models import PropertyModel, ContractModel, ContractStatusModel
 from src.models.owner_model import OwnerModel 
 from src.repository.base_repository import BaseRepository 
+from src.repository.contract_repository import ContractRepository
 
 class PropertyRepository(BaseRepository):
     def __init__(self, db: Session):
@@ -21,6 +22,13 @@ class PropertyRepository(BaseRepository):
 
     def get_by_key(self, property_key: str) -> PropertyModel | None:
         return self.db.query(PropertyModel).filter(PropertyModel.key == property_key).first()
+
+    def get_by_owner_id(self, owner_id: int) -> list[PropertyModel]:
+        return (
+            self.db.query(PropertyModel)
+            .filter(PropertyModel.owner_id == owner_id)
+            .all()
+        )
 
     def get_paginated(
         self, 
@@ -71,5 +79,17 @@ class PropertyRepository(BaseRepository):
         return property_model
 
     def delete(self, property_model: PropertyModel) -> None:
-        self.db.delete(property_model)
+        self.delete_many([property_model])
+
+    def delete_many(self, properties: list[PropertyModel]) -> None:
+        if not properties:
+            return
+
+        contract_repository = ContractRepository(self.db)
+        property_ids = {property_model.id for property_model in properties}
+        contracts = contract_repository.get_by_property_ids(property_ids)
+        contract_repository.delete_many(contracts)
+
+        for property_model in properties:
+            self.db.delete(property_model)
         self.db.flush()

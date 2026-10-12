@@ -1,4 +1,8 @@
 from unittest.mock import patch
+from src.models.extract_batch_model import ExtractBatchModel
+from src.models.extract_item_model import ExtractItemModel
+from src.models.extract_model import ExtractModel
+from src.models.payment_model import PaymentModel
 
 def test_create_extract_batch_success(auth_client, base_contract_key):
     payload = {
@@ -173,6 +177,125 @@ def test_delete_extract_batch_preserves_payment(
     assert check_pay.status_code == 200
     assert check_pay.json()["status"] == "unlinked"
     assert check_pay.json().get("extract_batch_key") is None
+
+
+def test_delete_individual_extract_reconciles_batch_and_preserves_payment(
+    auth_client,
+    contract_factory,
+    extract_batch_factory,
+    payment_factory,
+    db_session,
+):
+    first_contract = contract_factory(
+        tenant_payload={"document_number": "111.111.111-11"}
+    )
+    second_contract = contract_factory(
+        tenant_payload={"document_number": "222.222.222-22"}
+    )
+    batch = extract_batch_factory(
+        extracts=[
+            {
+                "month_ref": 1,
+                "year_ref": 2026,
+                "contract_key": first_contract["key"],
+                "items": [
+                    {
+                        "category": "rent",
+                        "description": "First rent",
+                        "amount": 1000.0,
+                        "is_credit": True,
+                        "is_withheld_at_source": False,
+                    }
+                ],
+            },
+            {
+                "month_ref": 2,
+                "year_ref": 2026,
+                "contract_key": second_contract["key"],
+                "items": [
+                    {
+                        "category": "rent",
+                        "description": "Second rent",
+                        "amount": 650.0,
+                        "is_credit": True,
+                        "is_withheld_at_source": False,
+                    }
+                ],
+            },
+        ]
+    )
+    payment = payment_factory(
+        amount=1650.0,
+        extract_batch_key=batch["key"],
+        link=True,
+    )
+    extracts = batch["extracts"]
+    first_extract = next(
+        extract
+        for extract in extracts
+        if extract["contract"]["key"] == first_contract["key"]
+    )
+    second_extract = next(
+        extract
+        for extract in extracts
+        if extract["contract"]["key"] == second_contract["key"]
+    )
+    first_extract_id = (
+        db_session.query(ExtractModel.id)
+        .filter(ExtractModel.key == first_extract["key"])
+        .scalar()
+    )
+    assert (
+        db_session.query(ExtractItemModel)
+        .filter(ExtractItemModel.extract_id == first_extract_id)
+        .count()
+        > 0
+    )
+
+    response = auth_client.delete(
+        f"/extract-batches/{batch['key']}/extracts/{first_extract['key']}"
+    )
+
+    assert response.status_code == 204
+    db_session.expire_all()
+    remaining_batch = (
+        db_session.query(ExtractBatchModel)
+        .filter(ExtractBatchModel.key == batch["key"])
+        .one()
+    )
+    assert remaining_batch.total_net_transfer == 650.0
+    assert len(remaining_batch.extracts) == 1
+    assert (
+        db_session.query(ExtractItemModel)
+        .filter(ExtractItemModel.extract_id == first_extract_id)
+        .count()
+        == 0
+    )
+    payment_model = (
+        db_session.query(PaymentModel)
+        .filter(PaymentModel.key == payment["key"])
+        .one()
+    )
+    assert payment_model.extract_batch is None
+
+    response = auth_client.delete(
+        f"/extract-batches/{batch['key']}/extracts/{second_extract['key']}"
+    )
+
+    assert response.status_code == 204
+    db_session.expire_all()
+    assert (
+        db_session.query(ExtractBatchModel)
+        .filter(ExtractBatchModel.key == batch["key"])
+        .first()
+        is None
+    )
+    assert (
+        db_session.query(PaymentModel)
+        .filter(PaymentModel.key == payment["key"])
+        .count()
+        == 1
+    )
 
 def test_upload_extract_batch_receipt(auth_client, base_contract_key):
     payload = {

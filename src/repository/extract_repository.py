@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 from src.models import ExtractModel, ContractModel, ExtractItemModel, PropertyModel
 from src.repository.base_repository import BaseRepository
+from src.repository.extract_batch_repository import ExtractBatchRepository
 
 class ExtractRepository(BaseRepository):
     def __init__(self, db: Session):
@@ -23,6 +24,22 @@ class ExtractRepository(BaseRepository):
         return self.db.query(ExtractModel).options(
             joinedload(ExtractModel.items).joinedload(ExtractItemModel.category)
         ).filter(ExtractModel.key == extract_key).first()
+
+    def get_by_contract_ids(self, contract_ids: set[int]) -> list[ExtractModel]:
+        if not contract_ids:
+            return []
+        return (
+            self.db.query(ExtractModel)
+            .filter(ExtractModel.contract_id.in_(contract_ids))
+            .all()
+        )
+
+    def get_by_batch_id(self, batch_id: int) -> list[ExtractModel]:
+        return (
+            self.db.query(ExtractModel)
+            .filter(ExtractModel.extract_batch_id == batch_id)
+            .all()
+        )
 
     def get_by_date_range_with_relations(
         self, 
@@ -62,5 +79,27 @@ class ExtractRepository(BaseRepository):
         return extract_model
 
     def delete(self, extract_model: ExtractModel) -> None:
+        self.delete_many([extract_model])
+
+    def delete_for_batch_update(self, extract_model: ExtractModel) -> None:
         self.db.delete(extract_model)
         self.db.flush()
+        ExtractBatchRepository(self.db).unlink_by_id(extract_model.extract_batch_id)
+
+    def delete_many(self, extracts: list[ExtractModel]) -> None:
+        if not extracts:
+            return
+
+        extract_batch_repository = ExtractBatchRepository(self.db)
+        batch_ids = {extract.extract_batch_id for extract in extracts}
+        batches = extract_batch_repository.get_by_ids(batch_ids)
+        for extract in extracts:
+            self.db.delete(extract)
+        self.db.flush()
+
+        for batch in batches:
+            remaining_extracts = self.get_by_batch_id(batch.id)
+            extract_batch_repository.update_after_extract_deletion(
+                batch,
+                remaining_extracts,
+            )

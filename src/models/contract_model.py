@@ -13,14 +13,35 @@ class ContractModel(Base):
     file_path = Column(String, nullable=True)
     rental_deposit = Column(Float)
 
-    property_id = Column(Integer, ForeignKey("properties.id"), nullable=False)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False)
-    real_estate_id = Column(Integer, ForeignKey("real_estates.id"), nullable=True)
+    property_id = Column(
+        Integer,
+        ForeignKey("properties.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    tenant_id = Column(
+        Integer,
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    real_estate_id = Column(
+        Integer,
+        ForeignKey("real_estates.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     status_id = Column(Integer, ForeignKey("contract_statuses.id"), nullable=False)
-    guarantee_id = Column(Integer, ForeignKey("guarantees.id"), nullable=True)
+    guarantee_id = Column(
+        Integer,
+        ForeignKey("guarantees.id", ondelete="CASCADE"),
+        nullable=False,
+    )
 
     property = relationship("PropertyModel")
     tenant = relationship("TenantModel")
     real_estate = relationship("RealEstateModel")
     status = relationship("ContractStatusModel")
     guarantee = relationship("GuaranteeModel")
+    extracts = relationship(
+        "ExtractModel",
+        back_populates="contract",
+        cascade="all, delete-orphan",
+    )
