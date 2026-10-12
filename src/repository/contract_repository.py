@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, update
 from src.repository.base_repository import BaseRepository
 from src.models import (
     ContractModel,
@@ -9,6 +9,10 @@ from src.models import (
     RealEstateModel,
     GuaranteeModel
 )
+from src.repository.contract_status_event_repository import (
+    ContractStatusEventRepository,
+)
+from src.repository.extract_repository import ExtractRepository
 
 class ContractRepository(BaseRepository):
     def __init__(self, db: Session):
@@ -42,6 +46,60 @@ class ContractRepository(BaseRepository):
     def get_by_key(self, contract_key: str) -> ContractModel | None:
         return self.db.query(ContractModel).filter(ContractModel.key == contract_key).first()
 
+    def get_by_property_id(self, property_id: int) -> list[ContractModel]:
+        return (
+            self.db.query(ContractModel)
+            .filter(ContractModel.property_id == property_id)
+            .all()
+        )
+
+    def get_by_property_ids(self, property_ids: set[int]) -> list[ContractModel]:
+        if not property_ids:
+            return []
+        return (
+            self.db.query(ContractModel)
+            .filter(ContractModel.property_id.in_(property_ids))
+            .all()
+        )
+
+    def get_by_tenant_id(self, tenant_id: int) -> list[ContractModel]:
+        return (
+            self.db.query(ContractModel)
+            .filter(ContractModel.tenant_id == tenant_id)
+            .all()
+        )
+
+    def get_by_guarantee_id(self, guarantee_id: int) -> list[ContractModel]:
+        return (
+            self.db.query(ContractModel)
+            .filter(ContractModel.guarantee_id == guarantee_id)
+            .all()
+        )
+
+    def count_by_guarantee_id(self, guarantee_id: int) -> int:
+        return (
+            self.db.query(ContractModel)
+            .filter(ContractModel.guarantee_id == guarantee_id)
+            .count()
+        )
+
+    def clear_real_estate_reference(self, real_estate_id: int) -> None:
+        self.db.execute(
+            update(ContractModel)
+            .where(ContractModel.real_estate_id == real_estate_id)
+            .values(real_estate_id=None)
+        )
+        self.db.flush()
+
+    def update_file_path(
+        self,
+        contract_model: ContractModel,
+        file_path: str,
+    ) -> ContractModel:
+        contract_model.file_path = file_path
+        self.db.flush()
+        return contract_model
+
     def update(
         self, 
         contract_model: ContractModel, 
@@ -66,7 +124,21 @@ class ContractRepository(BaseRepository):
         return contract_model
 
     def delete(self, contract_model: ContractModel) -> None:
-        self.db.delete(contract_model)
+        self.delete_many([contract_model])
+
+    def delete_many(self, contracts: list[ContractModel]) -> None:
+        if not contracts:
+            return
+
+        extract_repository = ExtractRepository(self.db)
+        contract_status_event_repository = ContractStatusEventRepository(self.db)
+        contract_ids = {contract.id for contract in contracts}
+        extracts = extract_repository.get_by_contract_ids(contract_ids)
+        extract_repository.delete_many(extracts)
+        contract_status_event_repository.delete_by_contract_ids(contract_ids)
+
+        for contract in contracts:
+            self.db.delete(contract)
         self.db.flush()
 
     def get_paginated(

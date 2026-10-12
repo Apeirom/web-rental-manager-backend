@@ -76,5 +76,4 @@ class PaymentController:
         payment_model = self.payment_repository.get_by_key(payment_key)
         if not payment_model:
             raise PaymentNotFoundError(payment_key=payment_key)
-        
         self.payment_repository.delete(payment_model)

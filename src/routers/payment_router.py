@@ -8,6 +8,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.payment_dto import PaymentDTO
 from src.schemas.payment_schema import PaymentCreateSchema, PaymentUpdateSchema
 from src.controller.payment_controller import PaymentController
+from src.dependencies.authorization import require_master_user
 
 bearer_scheme = HTTPBearer()
 
@@ -32,7 +33,11 @@ def update_payment(payment_key: str, schema: PaymentUpdateSchema, db: Session = 
     controller = PaymentController(db)
     return controller.update_payment(payment_key, schema)
 
-@payment_router.delete("/{payment_key}", status_code=status.HTTP_204_NO_CONTENT)
+@payment_router.delete(
+    "/{payment_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_master_user)],
+)
 def delete_payment(payment_key: str, db: Session = Depends(get_db)):
     controller = PaymentController(db)
     controller.delete_payment(payment_key)

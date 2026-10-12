@@ -1,14 +1,14 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 from fastapi import HTTPException
+from src.repository.health_repository import HealthRepository
 
 class HealthController:
     def __init__(self, db: Session):
-        self.db = db
+        self.health_repository = HealthRepository(db)
 
     def check_status(self) -> dict:
         try:
-            self.db.execute(text("SELECT 1"))
+            self.health_repository.check_connection()
             return {
                 "server": "online",
                 "database": "connected"

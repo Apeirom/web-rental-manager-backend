@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from src.models import RealEstateModel, ContractModel, ContractStatusModel
 from src.repository.base_repository import BaseRepository 
+from src.repository.contract_repository import ContractRepository
 
 
 class RealEstateRepository(BaseRepository):
@@ -73,5 +74,6 @@ class RealEstateRepository(BaseRepository):
         return real_estate_model
 
     def delete(self, real_estate_model: RealEstateModel) -> None:
+        ContractRepository(self.db).clear_real_estate_reference(real_estate_model.id)
         self.db.delete(real_estate_model)
         self.db.flush()

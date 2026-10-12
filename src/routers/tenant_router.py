@@ -8,6 +8,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.tenant_dto import TenantDTO
 from src.schemas.tenant_schema import TenantCreateSchema, TenantUpdateSchema
 from src.controller.tenant_controller import TenantController
+from src.dependencies.authorization import require_master_user
 
 bearer_scheme = HTTPBearer()
 
@@ -46,7 +47,11 @@ def update_tenant(tenant_key: str, schema: TenantUpdateSchema, db: Session = Dep
     controller = TenantController(db)
     return controller.update_tenant(tenant_key, schema)
 
-@tenant_router.delete("/{tenant_key}", status_code=status.HTTP_204_NO_CONTENT)
+@tenant_router.delete(
+    "/{tenant_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_master_user)],
+)
 def delete_tenant(tenant_key: str, db: Session = Depends(get_db)):
     controller = TenantController(db)
     controller.delete_tenant(tenant_key)

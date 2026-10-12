@@ -14,7 +14,11 @@ class ExtractItemModel(Base):
     is_credit = Column(Boolean, nullable=False)
     is_withheld_at_source = Column(Boolean, nullable=False, default=False)
     
-    extract_id = Column(Integer, ForeignKey("extracts.id"), nullable=False)
+    extract_id = Column(
+        Integer,
+        ForeignKey("extracts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     extract = relationship("ExtractModel", back_populates="items")
 
     category_id = Column(Integer, ForeignKey("extract_item_categories.id"), nullable=False)

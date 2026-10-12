@@ -1,4 +1,12 @@
 from unittest.mock import patch
+import pytest
+
+from src.models.contract_model import ContractModel
+from src.models.contract_status_event_model import ContractStatusEventModel
+from src.models.contract_status_model import ContractStatusModel
+from src.models.extract_batch_model import ExtractBatchModel
+from src.models.extract_model import ExtractModel
+from src.models.payment_model import PaymentModel
 
 def test_create_contract_success(
     auth_client, tenant_factory, property_factory, guarantee_factory
@@ -110,6 +118,182 @@ def test_delete_contract(auth_client, contract_factory):
 
     delete_res = auth_client.delete(f"/contracts/{contract_key}")
     assert delete_res.status_code == 204
+
+
+def test_delete_contract_cleans_extracts_and_preserves_payment(
+    auth_client,
+    contract_factory,
+    extract_batch_factory,
+    payment_factory,
+    db_session,
+):
+    contract = contract_factory(
+        tenant_payload={"document_number": "111.111.111-11"}
+    )
+    surviving_contract = contract_factory(
+        tenant_payload={"document_number": "222.222.222-22"}
+    )
+    batch = extract_batch_factory(contract_key=contract["key"])
+    payment = payment_factory(
+        extract_batch_key=batch["key"],
+        link=True,
+    )
+
+    batch_model = (
+        db_session.query(ExtractBatchModel)
+        .filter(ExtractBatchModel.key == batch["key"])
+        .one()
+    )
+    surviving_contract_id = (
+        db_session.query(ContractModel.id)
+        .filter(ContractModel.key == surviving_contract["key"])
+        .scalar()
+    )
+    db_session.add(
+        ExtractModel(
+            month_ref=2,
+            year_ref=2026,
+            net_transfer=425.0,
+            extract_batch_id=batch_model.id,
+            contract_id=surviving_contract_id,
+        )
+    )
+    batch_model.total_net_transfer = 1425.0
+    db_session.commit()
+
+    contract_model = (
+        db_session.query(ContractModel)
+        .filter(ContractModel.key == contract["key"])
+        .one()
+    )
+    deleted_contract_id = contract_model.id
+    status_id = db_session.query(ContractStatusModel.id).first()[0]
+    db_session.add(
+        ContractStatusEventModel(
+            contract=contract_model,
+            status_id=status_id,
+            user_data={"key": "test-key", "name": "Admin Test"},
+        )
+    )
+    db_session.commit()
+
+    response = auth_client.delete(f"/contracts/{contract['key']}")
+
+    assert response.status_code == 204
+    assert (
+        db_session.query(ContractModel)
+        .filter(ContractModel.key == contract["key"])
+        .first()
+        is None
+    )
+    assert (
+        db_session.query(ContractStatusEventModel)
+        .filter(ContractStatusEventModel.contract_id == deleted_contract_id)
+        .count()
+        == 0
+    )
+
+    surviving_batch = (
+        db_session.query(ExtractBatchModel)
+        .filter(ExtractBatchModel.key == batch["key"])
+        .one()
+    )
+    assert surviving_batch.total_net_transfer == 425.0
+    assert surviving_batch.payment_id is None
+    assert (
+        db_session.query(PaymentModel)
+        .filter(PaymentModel.key == payment["key"])
+        .count()
+        == 1
+    )
+    remaining_extract = (
+        db_session.query(ExtractModel)
+        .filter(ExtractModel.extract_batch_id == surviving_batch.id)
+        .one()
+    )
+    response = auth_client.delete(
+        f"/extract-batches/{batch['key']}/extracts/{remaining_extract.key}"
+    )
+    assert response.status_code == 204
+    assert (
+        db_session.query(ExtractBatchModel)
+        .filter(ExtractBatchModel.key == batch["key"])
+        .first()
+        is None
+    )
+    assert (
+        db_session.query(PaymentModel)
+        .filter(PaymentModel.key == payment["key"])
+        .count()
+        == 1
+    )
+
+
+@pytest.mark.parametrize(
+    ("dependency", "route"),
+    [
+        ("property", "properties"),
+        ("tenant", "tenants"),
+        ("guarantee", "guarantees"),
+    ],
+)
+def test_deleting_required_contract_dependency_deletes_contract(
+    auth_client,
+    contract_factory,
+    dependency,
+    route,
+    db_session,
+):
+    contract = contract_factory()
+    dependency_key = contract[dependency]["key"]
+
+    response = auth_client.delete(f"/{route}/{dependency_key}")
+
+    assert response.status_code == 204
+    assert (
+        db_session.query(ContractModel)
+        .filter(ContractModel.key == contract["key"])
+        .first()
+        is None
+    )
+
+
+def test_delete_real_estate_preserves_contract_and_clears_reference(
+    auth_client,
+    real_estate_factory,
+    contract_factory,
+    db_session,
+):
+    real_estate = real_estate_factory()
+    contract = contract_factory(payload={"real_estate_key": real_estate["key"]})
+
+    response = auth_client.delete(f"/real-estates/{real_estate['key']}")
+
+    assert response.status_code == 204
+    preserved_contract = (
+        db_session.query(ContractModel)
+        .filter(ContractModel.key == contract["key"])
+        .one()
+    )
+    assert preserved_contract.real_estate_id is None
+
+
+def test_create_contract_requires_guarantee(
+    auth_client,
+    tenant_factory,
+    property_factory,
+):
+    response = auth_client.post(
+        "/contracts",
+        json={
+            "rent_amount": 1000,
+            "status": "active",
+            "tenant_key": tenant_factory()["key"],
+            "property_key": property_factory()["key"],
+        },
+    )
+
+    assert response.status_code == 422
 
 def test_upload_contract_document(auth_client, contract_factory):
     contract_key = contract_factory(

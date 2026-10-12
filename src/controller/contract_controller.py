@@ -111,9 +111,9 @@ class ContractController:
             if not new_guarantee_model:
                 raise ContractInvalidRelationError(entity_name="Guarantee", key=schema.guarantee_key)
 
-        if contract_model.guarantee and contract_model.guarantee.key != schema.guarantee_key:
+        old_guarantee = None
+        if contract_model.guarantee.key != schema.guarantee_key:
             old_guarantee = contract_model.guarantee
-            self.guarantee_repository.delete(old_guarantee) 
 
         old_status_enumerator = contract_model.status.enumerator
 
@@ -138,6 +138,14 @@ class ContractController:
             real_estate=real_estate_model,
             guarantee=new_guarantee_model
         )
+
+        if old_guarantee is not None:
+            self.contract_repository.flush()
+            remaining_contracts = self.contract_repository.count_by_guarantee_id(
+                old_guarantee.id
+            )
+            if remaining_contracts == 0:
+                self.guarantee_repository.delete(old_guarantee)
 
         if old_status_enumerator != schema.status:
             self.contract_status_event_repository.create(
@@ -206,7 +214,9 @@ class ContractController:
             content_type=content_type
         )
 
-        contract_model.file_path = file_url
-        self.contract_repository.db.flush()
+        contract_model = self.contract_repository.update_file_path(
+            contract_model,
+            file_url,
+        )
 
         return ContractDTO.model_validate(contract_model)

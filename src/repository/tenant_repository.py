@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from src.repository.base_repository import BaseRepository
 from src.models import TenantModel, ContractModel, ContractStatusModel
+from src.repository.contract_repository import ContractRepository
 
 
 class TenantRepository(BaseRepository):
@@ -64,5 +65,8 @@ class TenantRepository(BaseRepository):
         return tenant_model
 
     def delete(self, tenant_model: TenantModel) -> None:
+        contract_repository = ContractRepository(self.db)
+        contracts = contract_repository.get_by_tenant_id(tenant_model.id)
+        contract_repository.delete_many(contracts)
         self.db.delete(tenant_model)
         self.db.flush()

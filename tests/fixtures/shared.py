@@ -39,7 +39,7 @@ def tenant_factory(auth_client):
 @pytest.fixture
 def guarantee_factory(auth_client):
     def create_guarantee(payload=None, **overrides):
-        if payload is not None:
+        if payload:
             guarantee_payload = dict(payload)
         elif overrides.get("type", "deposit") == "deposit":
             guarantee_payload = {"type": "deposit", "amount": 2000.00}
@@ -121,11 +121,9 @@ def contract_factory(
             contract_payload["property_key"] = property_factory(
                 **(property_payload or {})
             )["key"]
-        if guarantee_payload is not None and not contract_payload.get(
-            "guarantee_key"
-        ):
+        if not contract_payload.get("guarantee_key"):
             contract_payload["guarantee_key"] = guarantee_factory(
-                guarantee_payload
+                guarantee_payload or {}
             )["key"]
 
         return _create(auth_client, "/contracts", contract_payload)
