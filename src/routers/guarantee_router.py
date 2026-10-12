@@ -8,6 +8,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.guarantee_dto import DepositDTO, GuarantorDTO, BailInsuranceDTO
 from src.schemas.guarantee_schema import GuaranteeSchema
 from src.controller.guarantee_controller import GuaranteeController
+from src.dependencies.authorization import require_master_user
 
 bearer_scheme = HTTPBearer()
 
@@ -38,6 +39,10 @@ def get_guarantee(guarantee_key: str, db: Session = Depends(get_db)):
 def update_guarantee(guarantee_key: str, schema: GuaranteeSchema, db: Session = Depends(get_db)):
     return GuaranteeController(db).update_guarantee(guarantee_key, schema)
 
-@guarantee_router.delete("/{guarantee_key}", status_code=status.HTTP_204_NO_CONTENT)
+@guarantee_router.delete(
+    "/{guarantee_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_master_user)],
+)
 def delete_guarantee(guarantee_key: str, db: Session = Depends(get_db)):
     GuaranteeController(db).delete_guarantee(guarantee_key)

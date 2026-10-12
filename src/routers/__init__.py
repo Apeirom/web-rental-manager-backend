@@ -8,3 +8,4 @@ from src.routers.contract_router import contract_router
 from src.routers.payment_router import payment_router
 from src.routers.extract_batch_router import extract_batch_router
 from src.routers.analysis_router import analysis_router
+from src.routers.owner_router import owner_router

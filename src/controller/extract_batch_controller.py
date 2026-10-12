@@ -113,7 +113,7 @@ class ExtractBatchController:
 
         for ext_key, ext_model in existing_extracts.items():
             if ext_key not in payload_updates:
-                self.extract_repository.delete(ext_model)
+                self.extract_repository.delete_for_batch_update(ext_model)
             else:
                 extract_schema = payload_updates[ext_key]
                 contract = self.contract_repository.get_by_key(extract_schema.contract_key)
@@ -187,9 +187,7 @@ class ExtractBatchController:
         if not batch_model:
             raise ExtractBatchNotFoundError(batch_key)
         
-        self.extract_batch_repository.unlink_payment(batch_model)
         self.extract_batch_repository.delete(batch_model)
-        self.extract_batch_repository.commit()
 
     def get_batch_by_key(self, batch_key: str) -> ExtractBatchDTO:
         batch_model = self.extract_batch_repository.get_by_key(batch_key)

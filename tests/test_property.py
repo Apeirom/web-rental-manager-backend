@@ -1,7 +1,9 @@
-def test_create_property(auth_client):
+def test_create_property(auth_client, owner_factory):
+    owner_key = owner_factory(name="John Doe")["key"]
+
     payload = {
         "property_name": "Apt 101",
-        "owner_name": "John Doe",
+        "owner_key": owner_key,
         "address": "123 Main St",
         "room_count": 2
     }
@@ -11,6 +13,9 @@ def test_create_property(auth_client):
     assert response.json()["property_name"] == "Apt 101"
     assert "key" in response.json()
     assert "id" not in response.json()
+    # 3. Verifica se o DTO aninhado de owner retornou corretamente
+    assert response.json()["owner"]["name"] == "John Doe"
+    assert response.json()["owner"]["key"] == owner_key
 
 def test_get_all_properties(auth_client):
     response = auth_client.get("/properties")
@@ -22,10 +27,12 @@ def test_get_all_properties(auth_client):
     assert "limit" in res_json
     assert isinstance(res_json["data"], list)
 
-def test_get_property_by_key(auth_client):
+def test_get_property_by_key(auth_client, owner_factory):
+    owner_key = owner_factory(name="Jane Doe")["key"]
+
     payload = {
         "property_name": "Apt 102",
-        "owner_name": "Jane Doe",
+        "owner_key": owner_key,
         "address": "456 Oak St",
         "room_count": 3
     }
@@ -34,26 +41,31 @@ def test_get_property_by_key(auth_client):
 
     response = auth_client.get(f"/properties/{property_key}")
     assert response.status_code == 200
-    assert response.json()["owner_name"] == "Jane Doe"
+    assert response.json()["property_name"] == "Apt 102"
+    assert response.json()["owner"]["name"] == "Jane Doe"
 
 def test_get_property_not_found(auth_client):
     response = auth_client.get("/properties/invalid-uuid-key")
     assert response.status_code == 404
-    assert response.json()["detail"]["code"] == "RM-0003"
+    # Ajuste o código conforme o RM-0003 do seu PropertyNotFoundError
+    assert response.json()["detail"]["code"] == "RM-0003" 
 
-def test_update_property(auth_client):
+def test_update_property(auth_client, owner_factory):
+    owner_key = owner_factory(name="Bob Smith")["key"]
+
     payload = {
         "property_name": "Apt 103",
-        "owner_name": "Bob Smith",
+        "owner_key": owner_key,
         "address": "789 Pine St",
         "room_count": 1
     }
     create_res = auth_client.post("/properties", json=payload)
     property_key = create_res.json()["key"]
 
+    # Atualizando dados do imóvel
     update_payload = {
         "property_name": "Apt 103B",
-        "owner_name": "Bob Smith Jr",
+        "owner_key": owner_key, # Mantendo o mesmo dono
         "address": "789 Pine St",
         "room_count": 2
     }
@@ -62,11 +74,14 @@ def test_update_property(auth_client):
     assert update_res.status_code == 200
     assert update_res.json()["property_name"] == "Apt 103B"
     assert update_res.json()["room_count"] == 2
+    assert update_res.json()["owner"]["name"] == "Bob Smith"
 
-def test_delete_property(auth_client):
+def test_delete_property(auth_client, owner_factory):
+    owner_key = owner_factory(name="Alice Brown")["key"]
+
     payload = {
         "property_name": "Apt 104",
-        "owner_name": "Alice Brown",
+        "owner_key": owner_key,
         "address": "321 Elm St",
         "room_count": 4
     }

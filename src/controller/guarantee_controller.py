@@ -154,5 +154,4 @@ class GuaranteeController:
         model = self.guarantee_repository.get_by_key(guarantee_key)
         if not model:
             raise GuaranteeNotFoundError(guarantee_key=guarantee_key)
-            
         self.guarantee_repository.delete(model)

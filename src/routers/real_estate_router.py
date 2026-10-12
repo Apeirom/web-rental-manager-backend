@@ -8,6 +8,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.real_estate_dto import RealEstateDTO
 from src.schemas.real_estate_schema import RealEstateCreateSchema, RealEstateUpdateSchema
 from src.controller.real_estate_controller import RealEstateController
+from src.dependencies.authorization import require_master_user
 
 bearer_scheme = HTTPBearer()
 
@@ -45,7 +46,11 @@ def update_real_estate(real_estate_key: str, schema: RealEstateUpdateSchema, db:
     controller = RealEstateController(db)
     return controller.update_real_estate(real_estate_key, schema)
 
-@real_estate_router.delete("/{real_estate_key}", status_code=status.HTTP_204_NO_CONTENT)
+@real_estate_router.delete(
+    "/{real_estate_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_master_user)],
+)
 def delete_real_estate(real_estate_key: str, db: Session = Depends(get_db)):
     controller = RealEstateController(db)
     controller.delete_real_estate(real_estate_key)

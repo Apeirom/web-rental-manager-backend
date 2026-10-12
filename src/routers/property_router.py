@@ -8,6 +8,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.property_dto import PropertyDTO
 from src.schemas.property_schema import PropertyCreateSchema, PropertyUpdateSchema
 from src.controller.property_controller import PropertyController
+from src.dependencies.authorization import require_master_user
 
 bearer_scheme = HTTPBearer()
 
@@ -45,7 +46,11 @@ def update_property(property_key: str, schema: PropertyUpdateSchema, db: Session
     controller = PropertyController(db)
     return controller.update_property(property_key, schema)
 
-@property_router.delete("/{property_key}", status_code=status.HTTP_204_NO_CONTENT)
+@property_router.delete(
+    "/{property_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_master_user)],
+)
 def delete_property(property_key: str, db: Session = Depends(get_db)):
     controller = PropertyController(db)
     controller.delete_property(property_key)

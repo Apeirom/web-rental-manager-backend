@@ -11,4 +11,4 @@ class ContractSchema(BaseModel):
     tenant_key: str
     real_estate_key: Optional[str] = None
     
-    guarantee_key: Optional[str] = None
+    guarantee_key: str

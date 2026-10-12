@@ -23,11 +23,3 @@ class ExtractController:
             raise ExtractNotFoundError(extract_key)
 
         self.extract_repository.delete(extract_model)
-
-        new_total = 0.0
-        for extract in batch_model.extracts:
-            if extract.id != extract_model.id:
-                new_total += extract.net_transfer
-
-        self.extract_batch_repository.update_total(batch_model, round(new_total, 2))
-        self.extract_batch_repository.commit()

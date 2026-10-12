@@ -19,15 +19,46 @@ class ExtractBatchRepository(BaseRepository):
     def get_by_key(self, batch_key: str) -> ExtractBatchModel | None:
         return self.db.query(ExtractBatchModel).filter(ExtractBatchModel.key == batch_key).first()
 
+    def get_by_ids(self, batch_ids: set[int]) -> list[ExtractBatchModel]:
+        if not batch_ids:
+            return []
+        return (
+            self.db.query(ExtractBatchModel)
+            .filter(ExtractBatchModel.id.in_(batch_ids))
+            .all()
+        )
+
     def unlink_payment(self, batch_model: ExtractBatchModel) -> None:
         batch_model.payment_id = None
         self.db.flush()
+
+    def unlink_by_id(self, batch_id: int) -> None:
+        batch = self.db.query(ExtractBatchModel).filter(
+            ExtractBatchModel.id == batch_id
+        ).first()
+        if batch is not None:
+            self.unlink_payment(batch)
 
     def update_total(self, batch_model: ExtractBatchModel, new_total: float) -> None:
         if batch_model.total_net_transfer != new_total:
             batch_model.payment_id = None
             
         batch_model.total_net_transfer = new_total
+        self.db.flush()
+
+    def update_after_extract_deletion(
+        self,
+        batch_model: ExtractBatchModel,
+        remaining_extracts: list[ExtractModel],
+    ) -> None:
+        batch_model.payment_id = None
+        if remaining_extracts:
+            batch_model.total_net_transfer = round(
+                sum(extract.net_transfer for extract in remaining_extracts),
+                2,
+            )
+        else:
+            self.db.delete(batch_model)
         self.db.flush()
 
     def get_paginated(
@@ -71,5 +102,6 @@ class ExtractBatchRepository(BaseRepository):
         return total_count, items
 
     def delete(self, batch_model: ExtractBatchModel) -> None:
+        batch_model.payment_id = None
         self.db.delete(batch_model)
         self.db.flush()

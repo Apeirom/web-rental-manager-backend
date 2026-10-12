@@ -1,18 +1,24 @@
 from sqlalchemy.orm import Session
 from src.repository.property_repository import PropertyRepository
+from src.repository.owner_repository import OwnerRepository
 from src.schemas.property_schema import PropertyCreateSchema, PropertyUpdateSchema
 from src.dto.property_dto import PropertyDTO
 from src.dto.paginated_response import PaginatedResponseDTO
-from src.errors.custom_errors import PropertyNotFoundError
+from src.errors.custom_errors import PropertyNotFoundError, OwnerNotFoundError
 
 class PropertyController:
     def __init__(self, db: Session):
         self.property_repository = PropertyRepository(db)
+        self.owner_repository = OwnerRepository(db)
 
     def create_property(self, schema: PropertyCreateSchema) -> PropertyDTO:
+        owner_model = self.owner_repository.get_by_key(schema.owner_key)
+        if not owner_model:
+            raise OwnerNotFoundError(owner_key=schema.owner_key)
+
         property_model = self.property_repository.create(
             property_name=schema.property_name,
-            owner_name=schema.owner_name,
+            owner_id=owner_model.id, 
             address=schema.address,
             room_count=schema.room_count
         )
@@ -57,10 +63,14 @@ class PropertyController:
         if not property_model:
             raise PropertyNotFoundError(property_key=property_key)
             
+        owner_model = self.owner_repository.get_by_key(schema.owner_key)
+        if not owner_model:
+            raise OwnerNotFoundError(owner_key=schema.owner_key)
+            
         updated_model = self.property_repository.update(
             property_model=property_model,
             property_name=schema.property_name,
-            owner_name=schema.owner_name,
+            owner_id=owner_model.id,
             address=schema.address,
             room_count=schema.room_count
         )

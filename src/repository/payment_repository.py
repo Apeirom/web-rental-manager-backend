@@ -34,6 +34,8 @@ class PaymentRepository(BaseRepository):
         return payment_model
     
     def delete(self, payment_model: PaymentModel) -> None:
+        if payment_model.extract_batch is not None:
+            payment_model.extract_batch.payment_id = None
         self.db.delete(payment_model)
         self.db.flush()
 
