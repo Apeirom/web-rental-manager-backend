@@ -1,9 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from src.constants import DATABASE_URL
+from src.database.url import normalize_database_url
 
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+DATABASE_URL = normalize_database_url(DATABASE_URL)
 
 engine = create_engine(DATABASE_URL)
 

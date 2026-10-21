@@ -11,8 +11,8 @@ class OwnerModel(Base):
     name = Column(String, nullable=False)
     document_number = Column(String, nullable=True)
 
-    properties = relationship(
-        "PropertyModel",
+    equity_participations = relationship(
+        "EquityParticipationModel",
         back_populates="owner",
         cascade="all, delete-orphan",
     )

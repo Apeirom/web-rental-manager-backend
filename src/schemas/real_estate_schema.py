@@ -1,15 +1,27 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, field_validator
+
+from src.utils.document_number import normalize_cnpj
 
 class RealEstateCreateSchema(BaseModel):
     name: str
-    cnpj: str = Field(pattern=r"^(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})$")
+    cnpj: str
     address: str
     commission: float
     phone: str
 
+    @field_validator("cnpj")
+    @classmethod
+    def validate_cnpj(cls, value):
+        return normalize_cnpj(value)
+
 class RealEstateUpdateSchema(BaseModel):
     name: str
-    cnpj: str = Field(pattern=r"^(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})$")
+    cnpj: str
     address: str
     commission: float
     phone: str
+
+    @field_validator("cnpj")
+    @classmethod
+    def validate_cnpj(cls, value):
+        return normalize_cnpj(value)

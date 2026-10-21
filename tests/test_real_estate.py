@@ -1,7 +1,7 @@
 def test_create_real_estate(auth_client):
     payload = {
         "name": "Main Street Realty",
-        "cnpj": "12.345.678/0001-00",
+        "cnpj": "04.252.011/0001-10",
         "address": "789 Broker St",
         "commission": 6.5,
         "phone": "+5511999999999"
@@ -26,7 +26,7 @@ def test_create_real_estate_invalid_cnpj(auth_client):
 def test_create_real_estate_duplicate_cnpj(auth_client):
     payload = {
         "name": "Agency A",
-        "cnpj": "11.222.333/0001-44",
+        "cnpj": "11.222.333/0001-81",
         "address": "123 Alpha St",
         "commission": 5.0,
         "phone": "1234567"
@@ -50,7 +50,7 @@ def test_get_all_real_estates(auth_client):
 def test_get_real_estate_by_key(auth_client):
     payload = {
         "name": "Agency B",
-        "cnpj": "55.666.777/0001-88",
+        "cnpj": "04.252.011/0001-10",
         "address": "456 Beta St",
         "commission": 6.0,
         "phone": "7654321"
@@ -70,7 +70,7 @@ def test_get_real_estate_not_found(auth_client):
 def test_update_real_estate(auth_client):
     payload = {
         "name": "Agency C",
-        "cnpj": "99.888.777/0001-11",
+        "cnpj": "11.222.333/0001-81",
         "address": "789 Gamma St",
         "commission": 4.5,
         "phone": "999888777"
@@ -80,7 +80,7 @@ def test_update_real_estate(auth_client):
 
     update_payload = {
         "name": "Agency C Updated",
-        "cnpj": "99.888.777/0001-11",
+        "cnpj": "11.222.333/0001-81",
         "address": "789 Gamma St",
         "commission": 5.0,
         "phone": "999888777"
@@ -94,7 +94,7 @@ def test_update_real_estate(auth_client):
 def test_delete_real_estate(auth_client):
     payload = {
         "name": "Agency D",
-        "cnpj": "00.111.222/0001-33",
+        "cnpj": "04.252.011/0001-10",
         "address": "101 Delta St",
         "commission": 7.0,
         "phone": "111222333"

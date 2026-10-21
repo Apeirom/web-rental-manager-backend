@@ -26,13 +26,27 @@ def owner_factory(auth_client):
 def tenant_factory(auth_client):
     def create_tenant(
         name="Fixture Tenant",
-        document_number="123.456.789-10",
+        document_number=None,
         **overrides,
     ):
+        if document_number is None:
+            document_number = next(
+                create_tenant.generated_documents,
+                "100.000.000-19",
+            )
         payload = {"name": name, "document_number": document_number}
         payload.update(overrides)
         return _create(auth_client, "/tenants", payload)
 
+    create_tenant.generated_documents = iter(
+        [
+            "529.982.247-25",
+            "111.444.777-35",
+            "987.654.321-00",
+            "100.000.000-19",
+            "100.000.001-08",
+        ]
+    )
     return create_tenant
 
 
@@ -56,7 +70,7 @@ def real_estate_factory(auth_client):
     def create_real_estate(payload=None, **overrides):
         real_estate_payload = {
             "name": "Fixture Real Estate",
-            "cnpj": "12.345.678/0001-99",
+            "cnpj": "04.252.011/0001-10",
             "commission": 0.10,
             "address": "Fixture Address",
             "phone": "+5511999999999",
@@ -75,19 +89,23 @@ def property_factory(auth_client, owner_factory):
         property_name="Fixture Property",
         owner_key=None,
         owner_name="Fixture Owner",
+        equity_participations=None,
         address="123 Fixture St",
         room_count=1,
         **overrides,
     ):
-        if owner_key is None:
+        if owner_key is None and equity_participations is None:
             owner_key = owner_factory(name=owner_name)["key"]
 
         payload = {
             "property_name": property_name,
-            "owner_key": owner_key,
             "address": address,
             "room_count": room_count,
         }
+        if equity_participations is None:
+            payload["owner_key"] = owner_key
+        else:
+            payload["equity_participations"] = equity_participations
         payload.update(overrides)
         return _create(auth_client, "/properties", payload)
 

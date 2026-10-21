@@ -80,6 +80,41 @@ class BailInsuranceNotFoundError(BaseAppException):
             bail_insurance_key=bail_insurance_key
         )
 
+
+class IncomeTaxInvalidTenantDocumentError(BaseAppException):
+    def __init__(self, tenant_name: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0026",
+            message_en="Tenant {tenant_name} has an invalid CPF/CNPJ for the income tax report.",
+            message_pt="O inquilino {tenant_name} possui CPF/CNPJ inválido para o relatório de imposto de renda.",
+            tenant_name=tenant_name,
+        )
+
+
+class IncomeTaxInvalidPaymentDateError(BaseAppException):
+    def __init__(self, payment_date: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0027",
+            message_en="Payment date {payment_date} is invalid for the income tax export.",
+            message_pt="A data de pagamento {payment_date} é inválida para a exportação do imposto de renda.",
+            payment_date=payment_date,
+        )
+
+
+class IncomeTaxInvalidPeriodError(BaseAppException):
+    def __init__(self, start_date: str, end_date: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0028",
+            message_en="The start date {start_date} must be on or before the end date {end_date}.",
+            message_pt="A data inicial {start_date} deve ser anterior ou igual à data final {end_date}.",
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+
 class ContractNotFoundError(BaseAppException):
     def __init__(self, contract_key: str):
         super().__init__(

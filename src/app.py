@@ -19,7 +19,7 @@ from src.routers import (
     contract_router,
     payment_router,
     extract_batch_router,
-    analysis_router
+    reports_router,
 )
 
 from src.controller.health_controller import HealthController
@@ -70,4 +70,4 @@ app.include_router(guarantee_router)
 app.include_router(contract_router)
 app.include_router(payment_router)
 app.include_router(extract_batch_router)
-app.include_router(analysis_router)
+app.include_router(reports_router)

@@ -2,7 +2,7 @@ def test_create_guarantor(auth_client):
     payload = {
         "type": "guarantor",
         "name": "Uncle Scrooge",
-        "document_number": "123.456.789-10"
+        "document_number": "529.982.247-25"
     }
     response = auth_client.post("/guarantees", json=payload)
     
@@ -60,7 +60,7 @@ def test_create_guarantor_duplicate_document(auth_client):
 
 def test_get_all_guarantees(auth_client):
     auth_client.post("/guarantees", json={"type": "deposit", "amount": 1000})
-    auth_client.post("/guarantees", json={"type": "guarantor", "name": "G", "document_number": "111.111.111-11"})
+    auth_client.post("/guarantees", json={"type": "guarantor", "name": "G",     "document_number": "100.000.000-19"})
 
     response = auth_client.get("/guarantees")
     assert response.status_code == 200

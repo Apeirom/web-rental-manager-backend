@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session, joinedload
-from typing import Optional
-from src.models import ExtractModel, ContractModel, ExtractItemModel, PropertyModel
+from src.models import ExtractItemModel, ExtractModel
 from src.repository.base_repository import BaseRepository
 from src.repository.extract_batch_repository import ExtractBatchRepository
 
@@ -40,34 +39,6 @@ class ExtractRepository(BaseRepository):
             .filter(ExtractModel.extract_batch_id == batch_id)
             .all()
         )
-
-    def get_by_date_range_with_relations(
-        self, 
-        start_year: int, 
-        start_month: int, 
-        end_year: int, 
-        end_month: int,
-        owner_id: Optional[int] = None
-    ):
-        start_val = (start_year * 12) + start_month
-        end_val = (end_year * 12) + end_month
-
-        query = self.db.query(ExtractModel).options(
-            joinedload(ExtractModel.contract).joinedload(ContractModel.tenant),
-            joinedload(ExtractModel.contract).joinedload(ContractModel.property),
-            joinedload(ExtractModel.contract).joinedload(ContractModel.real_estate),
-            joinedload(ExtractModel.items).joinedload(ExtractItemModel.category)
-        )
-
-        if owner_id is not None:
-            query = query.join(ContractModel, ExtractModel.contract_id == ContractModel.id) \
-                         .join(PropertyModel, ContractModel.property_id == PropertyModel.id) \
-                         .filter(PropertyModel.owner_id == owner_id)
-
-        return query.filter(
-            ((ExtractModel.year_ref * 12) + ExtractModel.month_ref) >= start_val,
-            ((ExtractModel.year_ref * 12) + ExtractModel.month_ref) <= end_val
-        ).order_by(ExtractModel.year_ref.asc(), ExtractModel.month_ref.asc()).all()
 
     def update(self, extract_model: ExtractModel, month_ref: int, year_ref: int, net_transfer: float, contract_id: int) -> ExtractModel:
         extract_model.month_ref = month_ref

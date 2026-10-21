@@ -93,3 +93,74 @@ def test_delete_property(auth_client, owner_factory):
 
     get_res = auth_client.get(f"/properties/{property_key}")
     assert get_res.status_code == 404
+
+
+def test_property_supports_owner_specific_equity_participations(
+    auth_client, owner_factory
+):
+    owner_x = owner_factory(name="Owner X")
+    owner_y = owner_factory(name="Owner Y")
+
+    first = auth_client.post(
+        "/properties",
+        json={
+            "property_name": "Imóvel A",
+            "equity_participations": [
+                {
+                    "owner_key": owner_x["key"],
+                    "participation_percentage": 100,
+                }
+            ],
+            "address": "Rua A",
+            "room_count": 1,
+        },
+    )
+    second = auth_client.post(
+        "/properties",
+        json={
+            "property_name": "Imóvel B",
+            "equity_participations": [
+                {
+                    "owner_key": owner_x["key"],
+                    "participation_percentage": 50,
+                },
+                {
+                    "owner_key": owner_y["key"],
+                    "participation_percentage": 25,
+                },
+            ],
+            "address": "Rua B",
+            "room_count": 2,
+        },
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert first.json()["equity_participations"][0]["owner"]["key"] == owner_x["key"]
+    assert first.json()["equity_participations"][0]["participation_percentage"] == 100
+    second_shares = {
+        row["owner"]["key"]: row["participation_percentage"]
+        for row in second.json()["equity_participations"]
+    }
+    assert second_shares == {owner_x["key"]: 50, owner_y["key"]: 25}
+
+
+def test_property_rejects_participations_over_100_percent(
+    auth_client, owner_factory
+):
+    owner_x = owner_factory(name="Owner X")
+    owner_y = owner_factory(name="Owner Y")
+    response = auth_client.post(
+        "/properties",
+        json={
+            "property_name": "Invalid shares",
+            "equity_participations": [
+                {"owner_key": owner_x["key"], "participation_percentage": 60},
+                {"owner_key": owner_y["key"], "participation_percentage": 50},
+            ],
+            "address": "Rua C",
+            "room_count": 1,
+        },
+    )
+
+    assert response.status_code == 422

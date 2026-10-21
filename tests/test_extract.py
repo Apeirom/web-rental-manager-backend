@@ -187,10 +187,10 @@ def test_delete_individual_extract_reconciles_batch_and_preserves_payment(
     db_session,
 ):
     first_contract = contract_factory(
-        tenant_payload={"document_number": "111.111.111-11"}
+        tenant_payload={"document_number": "529.982.247-25"}
     )
     second_contract = contract_factory(
-        tenant_payload={"document_number": "222.222.222-22"}
+        tenant_payload={"document_number": "111.444.777-35"}
     )
     batch = extract_batch_factory(
         extracts=[
