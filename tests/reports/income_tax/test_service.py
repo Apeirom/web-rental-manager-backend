@@ -5,6 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from src.constants.income_tax_constants import IncomeTaxTenantType
 from src.errors.custom_errors import (
     IncomeTaxInvalidPaymentDateError,
     IncomeTaxInvalidPeriodError,
@@ -123,6 +124,29 @@ def test_export_csv_uses_headerless_brazilian_format():
     assert rows == [
         "10/01/2026;R01.003.001;;505,51;50,00;Aluguel ref. 01/2026 - Property - Tenant;PF"
     ]
+
+
+def test_summary_filters_by_tenant_type_before_calculating_totals():
+    repository = Mock()
+    repository.get_paid_extracts_for_period.return_value = [
+        (_extract(), _participation()),
+        (
+            _extract("04.252.011/0001-10"),
+            _participation(owner_key="owner-pj", owner_name="Owner PJ"),
+        ),
+    ]
+
+    summary = _controller(repository).get_summary(
+        owner_key="owner-key",
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 31),
+        tenant_type=IncomeTaxTenantType.PJ,
+    )
+
+    assert len(summary.extracts) == 1
+    assert summary.extracts[0].tenant_document_type == "PJ"
+    assert summary.total_income == 505.51
+    assert summary.total_deductions == 50
 
 
 def test_controller_translates_invalid_tenant_document_to_api_error():

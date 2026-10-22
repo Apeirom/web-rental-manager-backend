@@ -1,4 +1,12 @@
+from enum import Enum
 from decimal import Decimal
+
+
+class IncomeTaxTenantType(str, Enum):
+    PF = "PF"
+    PJ = "PJ"
+    BOTH = "BOTH"
+
 
 INCOME_TAX_DEFAULT_PERIOD_DAYS = 90
 INCOME_TAX_INCOME_CODE = "R01.003.001"
