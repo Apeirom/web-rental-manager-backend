@@ -64,7 +64,7 @@ def test_update_contract_swap_guarantee_deletes_orphan(
     auth_client, tenant_factory, property_factory, guarantee_factory, contract_factory
 ):
     tenant_key = tenant_factory(
-        name="Swap Tenant", document_number="555.555.555-55"
+        name="Swap Tenant", document_number="111.444.777-35"
     )["key"]
     property_key = property_factory(
         property_name="Studio Y", address="123"
@@ -73,7 +73,7 @@ def test_update_contract_swap_guarantee_deletes_orphan(
     g1_key = guarantee_factory(
         type="guarantor",
         name="Old Guarantor",
-        document_number="333.333.333-33",
+        document_number="100.000.000-19",
     )["key"]
     contract_key = contract_factory(
         payload={
@@ -105,7 +105,7 @@ def test_delete_contract(auth_client, contract_factory):
         payload={"rent_amount": 500.00},
         tenant_payload={
             "name": "Tenant Two",
-            "document_number": "888.777.666-55",
+            "document_number": "100.000.001-08",
         },
         property_payload={
             "property_name": "Room 5",
@@ -128,10 +128,10 @@ def test_delete_contract_cleans_extracts_and_preserves_payment(
     db_session,
 ):
     contract = contract_factory(
-        tenant_payload={"document_number": "111.111.111-11"}
+        tenant_payload={"document_number": "529.982.247-25"}
     )
     surviving_contract = contract_factory(
-        tenant_payload={"document_number": "222.222.222-22"}
+        tenant_payload={"document_number": "111.444.777-35"}
     )
     batch = extract_batch_factory(contract_key=contract["key"])
     payment = payment_factory(
@@ -300,7 +300,7 @@ def test_upload_contract_document(auth_client, contract_factory):
         payload={"rent_amount": 500.00},
         tenant_payload={
             "name": "Upload Tenant",
-            "document_number": "111.111.111-11",
+            "document_number": "529.982.247-25",
         },
         property_payload={
             "property_name": "Upload Prop",

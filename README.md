@@ -36,3 +36,10 @@ O projeto segue os princípios de **Clean Architecture** e **Separation of Conce
 
 uvicorn src.app:app --reload
 https://web-retal-manager-backend.onrender.com/docs
+
+## Migrações do banco
+
+O Alembic é o único fluxo ativo para versionar e aplicar alterações no schema.
+Revise cada revisão gerada antes de executá-la com `alembic upgrade head`.
+Os scripts SQL em `migrations/` são artefatos legados e não devem ser executados;
+eles podem divergir do estado atual do schema e das revisões Alembic.
