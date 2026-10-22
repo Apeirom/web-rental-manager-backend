@@ -9,6 +9,7 @@ from src.constants.income_tax_constants import (
     INCOME_TAX_DEDUCTION_CATEGORIES,
     INCOME_TAX_INCOME_CATEGORIES,
     INCOME_TAX_INCOME_CODE,
+    IncomeTaxTenantType,
 )
 from src.constants.property_constants import EQUITY_PARTICIPATION_PERCENTAGE_BASE
 from src.dto.income_tax_dto import (
@@ -103,6 +104,7 @@ class IncomeTaxController:
         owner_key: str | None,
         start_date: date | None,
         end_date: date | None,
+        tenant_type: IncomeTaxTenantType = IncomeTaxTenantType.BOTH,
     ) -> IncomeTaxSummaryDTO:
         owner: OwnerModel | None = None
         if owner_key is not None:
@@ -117,6 +119,7 @@ class IncomeTaxController:
                 owner_id=owner.id if owner else None,
                 start_date=start_date,
                 end_date=end_date,
+                tenant_type=tenant_type,
             )
         except InvalidIncomeTaxPeriodError as error:
             raise IncomeTaxInvalidPeriodError(
@@ -139,6 +142,7 @@ class IncomeTaxController:
         owner_id: int | None,
         start_date: date | None,
         end_date: date | None,
+        tenant_type: IncomeTaxTenantType,
     ) -> IncomeTaxSummaryDTO:
         effective_start_date, effective_end_date = self.resolve_period(
             start_date,
@@ -151,7 +155,12 @@ class IncomeTaxController:
         )
         extract_dtos: list[IncomeTaxExtractDTO] = []
         for extract, participation in extracts:
-            extract_dtos.append(self._build_extract_dto(extract, participation))
+            extract_dto = self._build_extract_dto(extract, participation)
+            if (
+                tenant_type == IncomeTaxTenantType.BOTH
+                or extract_dto.tenant_document_type == tenant_type.value
+            ):
+                extract_dtos.append(extract_dto)
 
         total_income = _money(
             sum(
@@ -280,8 +289,14 @@ class IncomeTaxController:
         owner_key: str | None,
         start_date: date | None,
         end_date: date | None,
+        tenant_type: IncomeTaxTenantType = IncomeTaxTenantType.BOTH,
     ) -> tuple[str, IncomeTaxSummaryDTO]:
-        summary = self.get_summary(owner_key, start_date, end_date)
+        summary = self.get_summary(
+            owner_key,
+            start_date,
+            end_date,
+            tenant_type=tenant_type,
+        )
         output = StringIO(newline="")
         writer = csv.writer(output, delimiter=";", lineterminator="\r\n")
         for extract in summary.extracts:
