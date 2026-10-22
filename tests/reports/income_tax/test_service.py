@@ -87,11 +87,16 @@ def test_build_summary_applies_owner_share_and_excludes_non_tax_items():
     )
 
     assert summary.total_income == 505.51
-    assert summary.total_deductions == 75
-    assert summary.taxable_base == 430.51
+    assert summary.total_deductions == 50
+    assert summary.taxable_base == 455.51
     assert summary.extracts[0].tenant_document_type == "PF"
     assert summary.extracts[0].income_items[-1].category == "interest"
     assert all(item.category != "water" for item in summary.extracts[0].income_items)
+    assert summary.extracts[0].iptu == 0
+    assert all(
+        item.category != "iptu"
+        for item in summary.extracts[0].deduction_items
+    )
     assert summary.start_date == "2026-01-01"
     assert summary.end_date == "2026-01-31"
     assert summary.extracts[0].owner_name == "Owner"
@@ -116,7 +121,7 @@ def test_export_csv_uses_headerless_brazilian_format():
     rows = content.splitlines()
 
     assert rows == [
-        "10/01/2026;R01.003.001;;505,51;75,00;Aluguel ref. 01/2026 - Property - Tenant;PF"
+        "10/01/2026;R01.003.001;;505,51;50,00;Aluguel ref. 01/2026 - Property - Tenant;PF"
     ]
 
 

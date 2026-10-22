@@ -173,8 +173,8 @@ def test_income_tax_summary_applies_each_property_share_and_requires_payment(
     assert response.status_code == 200
     summary = response.json()
     assert summary["total_income"] == 2150
-    assert summary["total_deductions"] == 300
-    assert summary["taxable_base"] == 1850
+    assert summary["total_deductions"] == 200
+    assert summary["taxable_base"] == 1950
     assert summary["owner_name"] == "Owner X"
     assert summary["start_date"] == "2026-01-01"
     assert summary["end_date"] == "2026-01-31"
@@ -184,8 +184,15 @@ def test_income_tax_summary_applies_each_property_share_and_requires_payment(
     assert by_property["Property One"]["total_income"] == 1075
     assert by_property["Property Two"]["participation_percentage"] == 50
     assert by_property["Property Two"]["total_income"] == 1075
-    assert by_property["Property One"]["total_deductions"] == 150
-    assert by_property["Property Two"]["total_deductions"] == 150
+    assert by_property["Property One"]["total_deductions"] == 100
+    assert by_property["Property Two"]["total_deductions"] == 100
+    assert by_property["Property One"]["iptu"] == 0
+    assert by_property["Property Two"]["iptu"] == 0
+    assert all(
+        item["category"] != "iptu"
+        for row in by_property.values()
+        for item in row["deduction_items"]
+    )
     assert by_property["Property One"]["tenant_document_type"] == "PF"
     assert by_property["Property Two"]["tenant_document_type"] == "PJ"
     assert by_property["Property One"]["payment_date"] == "2026-01-10"
@@ -203,7 +210,7 @@ def test_income_tax_summary_applies_each_property_share_and_requires_payment(
     assert len(other_summary["extracts"]) == 1
     assert other_summary["extracts"][0]["participation_percentage"] == 25
     assert other_summary["total_income"] == 537.5
-    assert other_summary["total_deductions"] == 75
+    assert other_summary["total_deductions"] == 50
 
 
 def test_income_tax_export_has_seven_headerless_fields_and_brazilian_numbers(

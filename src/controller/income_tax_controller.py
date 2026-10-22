@@ -267,7 +267,7 @@ class IncomeTaxController:
             interest=float(income_totals["interest"]),
             penalty=float(income_totals["penalty"]),
             administration_fee=float(deduction_totals["administration_fee"]),
-            iptu=float(deduction_totals["iptu"]),
+            iptu=0.0,
             total_income=float(total_income),
             total_deductions=float(total_deductions),
             taxable_base=float(_money(total_income - total_deductions)),
