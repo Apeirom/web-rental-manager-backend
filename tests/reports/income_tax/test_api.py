@@ -197,6 +197,39 @@ def test_income_tax_summary_applies_each_property_share_and_requires_payment(
     assert by_property["Property Two"]["tenant_document_type"] == "PJ"
     assert by_property["Property One"]["payment_date"] == "2026-01-10"
 
+    pf_response = auth_client.get(
+        "/reports/income-tax/summary",
+        params={
+            "owner_key": owner_x["key"],
+            "start_date": "2026-01-01",
+            "end_date": "2026-01-31",
+            "tenant_type": "PF",
+        },
+    )
+    pj_response = auth_client.get(
+        "/reports/income-tax/summary",
+        params={
+            "owner_key": owner_x["key"],
+            "start_date": "2026-01-01",
+            "end_date": "2026-01-31",
+            "tenant_type": "PJ",
+        },
+    )
+
+    assert pf_response.status_code == 200
+    pf_summary = pf_response.json()
+    assert pf_summary["total_income"] == 1075
+    assert pf_summary["total_deductions"] == 100
+    assert len(pf_summary["extracts"]) == 1
+    assert pf_summary["extracts"][0]["tenant_document_type"] == "PF"
+
+    assert pj_response.status_code == 200
+    pj_summary = pj_response.json()
+    assert pj_summary["total_income"] == 1075
+    assert pj_summary["total_deductions"] == 100
+    assert len(pj_summary["extracts"]) == 1
+    assert pj_summary["extracts"][0]["tenant_document_type"] == "PJ"
+
     other_owner_response = auth_client.get(
         "/reports/income-tax/summary",
         params={
@@ -261,6 +294,7 @@ def test_income_tax_export_has_seven_headerless_fields_and_brazilian_numbers(
             "owner_key": owner["key"],
             "start_date": "2026-01-01",
             "end_date": "2026-01-31",
+            "tenant_type": "PJ",
         },
     )
 
@@ -285,6 +319,19 @@ def test_income_tax_export_has_seven_headerless_fields_and_brazilian_numbers(
     assert rows[1][4] == "50,00"
     assert rows[1][6] == "PJ"
 
+    pf_response = auth_client.get(
+        "/reports/income-tax/export",
+        params={
+            "owner_key": owner["key"],
+            "start_date": "2026-01-01",
+            "end_date": "2026-01-31",
+            "tenant_type": "PF",
+        },
+    )
+    pf_rows = list(csv.reader(StringIO(pf_response.text), delimiter=";"))
+    assert pf_response.status_code == 200
+    assert pf_rows == []
+
 
 def test_income_tax_routes_require_owner_and_valid_period(auth_client):
     all_owners = auth_client.get(
@@ -305,10 +352,15 @@ def test_income_tax_routes_require_owner_and_valid_period(auth_client):
             "end_date": "2026-01-31",
         },
     )
+    invalid_tenant_type = auth_client.get(
+        "/reports/income-tax/summary",
+        params={"tenant_type": "COMPANY"},
+    )
 
     assert all_owners.status_code == 200
     assert invalid_period.status_code == 422
     assert unknown_owner.status_code == 404
+    assert invalid_tenant_type.status_code == 422
 
 
 def test_income_tax_summary_applies_payment_date_bounds_inclusively(
