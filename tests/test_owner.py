@@ -4,13 +4,13 @@ from src.models import ExtractBatchModel, ExtractModel
 def test_create_owner(auth_client):
     payload = {
         "name": "Carlos Silva",
-        "document_number": "12345678901"
+        "document_number": "52998224725"
     }
     response = auth_client.post("/owners", json=payload)
     
     assert response.status_code == 201
     assert response.json()["name"] == "Carlos Silva"
-    assert response.json()["document_number"] == "12345678901"
+    assert response.json()["document_number"] == "529.982.247-25"
     assert "key" in response.json()
     assert "id" not in response.json()
 
@@ -45,16 +45,16 @@ def test_get_owner_not_found(auth_client):
     assert "detail" in response.json() 
 
 def test_update_owner(auth_client):
-    payload = {"name": "João Antigo", "document_number": "11111111111"}
+    payload = {"name": "João Antigo", "document_number": "529.982.247-25"}
     create_res = auth_client.post("/owners", json=payload)
     owner_key = create_res.json()["key"]
 
-    update_payload = {"name": "João Novo", "document_number": "22222222222"}
+    update_payload = {"name": "João Novo", "document_number": "111.444.777-35"}
     update_res = auth_client.put(f"/owners/{owner_key}", json=update_payload)
     
     assert update_res.status_code == 200
     assert update_res.json()["name"] == "João Novo"
-    assert update_res.json()["document_number"] == "22222222222"
+    assert update_res.json()["document_number"] == "111.444.777-35"
 
 def test_delete_owner(auth_client):
     payload = {"name": "Para Deletar"}
@@ -68,7 +68,7 @@ def test_delete_owner(auth_client):
     assert get_res.status_code == 404
 
 
-def test_delete_owner_cascades_properties_and_dependents(
+def test_delete_owner_preserves_properties_and_contract_data(
     auth_client,
     owner_factory,
     property_factory,
@@ -85,7 +85,7 @@ def test_delete_owner_cascades_properties_and_dependents(
     )
     owned_tenant = tenant_factory(
         name="Owned Tenant",
-        document_number="101.202.303-44",
+        document_number="100.000.000-19",
     )
     owned_contract = contract_factory(
         payload={
@@ -98,7 +98,7 @@ def test_delete_owner_cascades_properties_and_dependents(
     unrelated_property = property_factory(property_name="Unrelated Property")
     unrelated_tenant = tenant_factory(
         name="Unrelated Tenant",
-        document_number="505.606.707-88",
+        document_number="100.000.001-08",
     )
     unrelated_contract = contract_factory(
         payload={
@@ -183,18 +183,24 @@ def test_delete_owner_cascades_properties_and_dependents(
 
     assert response.status_code == 204
     assert auth_client.get(f"/owners/{owner['key']}").status_code == 404
-    assert auth_client.get(
-        f"/properties/{owned_property['key']}"
-    ).status_code == 404
-    assert auth_client.get(
-        f"/contracts/{owned_contract['key']}"
-    ).status_code == 404
-    assert (
+    property_response = auth_client.get(f"/properties/{owned_property['key']}")
+    assert property_response.status_code == 200
+    assert property_response.json()["equity_participations"] == []
+    assert auth_client.get(f"/contracts/{owned_contract['key']}").status_code == 200
+
+    preserved_single_batch = (
         db_session.query(ExtractBatchModel)
         .filter(ExtractBatchModel.key == single_extract_batch["key"])
         .first()
-        is None
     )
+    assert preserved_single_batch is not None
+    single_extracts = (
+        db_session.query(ExtractModel)
+        .filter(ExtractModel.extract_batch_id == preserved_single_batch.id)
+        .all()
+    )
+    assert len(single_extracts) == 1
+    assert single_extracts[0].contract.key == owned_contract["key"]
 
     preserved_batch = (
         db_session.query(ExtractBatchModel)
@@ -202,14 +208,16 @@ def test_delete_owner_cascades_properties_and_dependents(
         .first()
     )
     assert preserved_batch is not None
-    assert preserved_batch.total_net_transfer == 500.00
     surviving_extracts = (
         db_session.query(ExtractModel)
         .filter(ExtractModel.extract_batch_id == preserved_batch.id)
         .all()
     )
-    assert len(surviving_extracts) == 1
-    assert surviving_extracts[0].contract.key == unrelated_contract["key"]
+    assert len(surviving_extracts) == 2
+    assert {extract.contract.key for extract in surviving_extracts} == {
+        owned_contract["key"],
+        unrelated_contract["key"],
+    }
 
     assert auth_client.get(
         f"/properties/{unrelated_property['key']}"
@@ -221,8 +229,8 @@ def test_delete_owner_cascades_properties_and_dependents(
     for payment in (single_batch_payment, mixed_batch_payment):
         payment_response = auth_client.get(f"/payments/{payment['key']}")
         assert payment_response.status_code == 200
-        assert payment_response.json()["status"] == "unlinked"
-        assert payment_response.json()["extract_batch_key"] is None
+        assert payment_response.json()["status"] == "linked"
+        assert payment_response.json()["extract_batch_key"] is not None
 
 
 def test_delete_property_preserves_its_owner(
@@ -240,3 +248,33 @@ def test_delete_property_preserves_its_owner(
     owner_response = auth_client.get(f"/owners/{owner['key']}")
     assert owner_response.status_code == 200
     assert owner_response.json()["name"] == "Owner stays"
+
+
+def test_delete_owner_preserves_property_with_another_owner(
+    auth_client, owner_factory, property_factory
+):
+    owner_to_delete = owner_factory(name="Owner to remove")
+    surviving_owner = owner_factory(name="Surviving owner")
+    property_record = property_factory(
+        property_name="Shared property",
+        equity_participations=[
+            {
+                "owner_key": owner_to_delete["key"],
+                "participation_percentage": 50,
+            },
+            {
+                "owner_key": surviving_owner["key"],
+                "participation_percentage": 25,
+            },
+        ],
+    )
+
+    response = auth_client.delete(f"/owners/{owner_to_delete['key']}")
+
+    assert response.status_code == 204
+    property_response = auth_client.get(f"/properties/{property_record['key']}")
+    assert property_response.status_code == 200
+    remaining = property_response.json()["equity_participations"]
+    assert len(remaining) == 1
+    assert remaining[0]["owner"]["key"] == surviving_owner["key"]
+    assert remaining[0]["participation_percentage"] == 25

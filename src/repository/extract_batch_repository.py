@@ -1,6 +1,14 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_
-from src.models import ExtractBatchModel, ExtractModel, ContractModel, PropertyModel, TenantModel, ContractStatusModel
+from src.models import (
+    ContractModel,
+    ContractStatusModel,
+    EquityParticipationModel,
+    ExtractBatchModel,
+    ExtractModel,
+    PropertyModel,
+    TenantModel,
+)
 from src.repository.base_repository import BaseRepository 
 
 class ExtractBatchRepository(BaseRepository):
@@ -70,7 +78,13 @@ class ExtractBatchRepository(BaseRepository):
         is_reconciled: bool | None = None
     ) -> tuple[int, list[ExtractBatchModel]]:
         
-        query = self.db.query(ExtractBatchModel)
+        query = self.db.query(ExtractBatchModel).options(
+            selectinload(ExtractBatchModel.extracts)
+            .joinedload(ExtractModel.contract)
+            .joinedload(ContractModel.property)
+            .selectinload(PropertyModel.equity_participations)
+            .joinedload(EquityParticipationModel.owner)
+        )
 
         if search_term or only_active_contracts:
             query = query.join(ExtractBatchModel.extracts).join(ExtractModel.contract)

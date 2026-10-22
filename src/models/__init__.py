@@ -6,6 +6,8 @@ from src.models.extract_model import ExtractModel
 from src.models.guarantee_type_model import GuaranteeTypeEnum
 from src.models.payment_model import PaymentModel
 from src.models.property_model import PropertyModel
+from src.models.equity_participation_model import EquityParticipationModel
+from src.models.owner_model import OwnerModel
 from src.models.real_estate_model import RealEstateModel
 from src.models.tenant_model import TenantModel
 from src.models.user_model import UserModel

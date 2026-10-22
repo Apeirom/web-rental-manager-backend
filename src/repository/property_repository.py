@@ -1,32 +1,69 @@
-from sqlalchemy.orm import Session
+from decimal import Decimal
+
 from sqlalchemy import or_
-from src.models import PropertyModel, ContractModel, ContractStatusModel
-from src.models.owner_model import OwnerModel 
-from src.repository.base_repository import BaseRepository 
+from sqlalchemy.orm import Session, selectinload
+
+from src.models import (
+    ContractModel,
+    ContractStatusModel,
+    EquityParticipationModel,
+    PropertyModel,
+)
+from src.models.owner_model import OwnerModel
+from src.repository.base_repository import BaseRepository
 from src.repository.contract_repository import ContractRepository
+
 
 class PropertyRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def create(self, property_name: str, owner_id: int, address: str, room_count: int) -> PropertyModel:
+    def create(
+        self,
+        property_name: str,
+        participations: list[tuple[int, Decimal]],
+        address: str,
+        room_count: int,
+    ) -> PropertyModel:
         new_property = PropertyModel(
             property_name=property_name,
-            owner_id=owner_id,
             address=address,
-            room_count=room_count
+            room_count=room_count,
         )
         self.db.add(new_property)
         self.db.flush()
+        new_property.equity_participations = [
+            EquityParticipationModel(
+                owner_id=owner_id,
+                participation_percentage=percentage,
+            )
+            for owner_id, percentage in participations
+        ]
+        self.db.flush()
         return new_property
 
-    def get_by_key(self, property_key: str) -> PropertyModel | None:
-        return self.db.query(PropertyModel).filter(PropertyModel.key == property_key).first()
+    def get_by_key(
+        self, property_key: str, for_update: bool = False
+    ) -> PropertyModel | None:
+        query = self.db.query(PropertyModel).options(
+            selectinload(PropertyModel.equity_participations).joinedload(
+                EquityParticipationModel.owner
+            )
+        )
+        if for_update:
+            query = query.with_for_update()
+        return query.filter(PropertyModel.key == property_key).first()
 
     def get_by_owner_id(self, owner_id: int) -> list[PropertyModel]:
         return (
             self.db.query(PropertyModel)
-            .filter(PropertyModel.owner_id == owner_id)
+            .join(PropertyModel.equity_participations)
+            .filter(EquityParticipationModel.owner_id == owner_id)
+            .options(
+                selectinload(PropertyModel.equity_participations).joinedload(
+                    EquityParticipationModel.owner
+                )
+            )
             .all()
         )
 
@@ -40,10 +77,16 @@ class PropertyRepository(BaseRepository):
         only_active_contracts: bool = False
     ) -> tuple[int, list[PropertyModel]]:
         
-        query = self.db.query(PropertyModel)
+        query = self.db.query(PropertyModel).options(
+            selectinload(PropertyModel.equity_participations).joinedload(
+                EquityParticipationModel.owner
+            )
+        )
 
         if search_term or owner_name:
-            query = query.join(OwnerModel, OwnerModel.id == PropertyModel.owner_id)
+            query = query.join(PropertyModel.equity_participations).join(
+                EquityParticipationModel.owner
+            )
 
         if search_term:
             query = query.filter(
@@ -65,16 +108,34 @@ class PropertyRepository(BaseRepository):
                          .filter(ContractStatusModel.enumerator == "active") \
                          .distinct()
 
+        if search_term or owner_name:
+            query = query.distinct()
+
         total_count = query.count()
         items = query.offset(skip).limit(limit).all()
 
         return total_count, items
 
-    def update(self, property_model: PropertyModel, property_name: str, owner_id: int, address: str, room_count: int) -> PropertyModel:
+    def update(
+        self,
+        property_model: PropertyModel,
+        property_name: str,
+        participations: list[tuple[int, Decimal]],
+        address: str,
+        room_count: int,
+    ) -> PropertyModel:
         property_model.property_name = property_name
-        property_model.owner_id = owner_id
         property_model.address = address
         property_model.room_count = room_count
+        property_model.equity_participations.clear()
+        self.db.flush()
+        property_model.equity_participations = [
+            EquityParticipationModel(
+                owner_id=owner_id,
+                participation_percentage=percentage,
+            )
+            for owner_id, percentage in participations
+        ]
         self.db.flush()
         return property_model
 
