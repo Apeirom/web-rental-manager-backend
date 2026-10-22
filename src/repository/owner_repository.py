@@ -2,7 +2,6 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from src.models.owner_model import OwnerModel
 from src.repository.base_repository import BaseRepository 
-from src.repository.property_repository import PropertyRepository
 
 class OwnerRepository(BaseRepository):
     def __init__(self, db: Session):
@@ -53,13 +52,5 @@ class OwnerRepository(BaseRepository):
 
 
     def delete(self, owner_model: OwnerModel) -> None:
-        property_repository = PropertyRepository(self.db)
-        properties = property_repository.get_by_owner_id(owner_model.id)
-        exclusively_owned = [
-            property_model
-            for property_model in properties
-            if len(property_model.equity_participations) == 1
-        ]
-        property_repository.delete_many(exclusively_owned)
         self.db.delete(owner_model)
         self.db.flush()

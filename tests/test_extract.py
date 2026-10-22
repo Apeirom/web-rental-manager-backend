@@ -65,6 +65,48 @@ def test_get_all_extract_batches(auth_client, base_contract_key):
     assert "total" in res_json
     assert isinstance(res_json["data"], list)
 
+
+def test_extract_batch_returns_all_property_owners_without_legacy_owner(
+    auth_client,
+    owner_factory,
+    property_factory,
+    contract_factory,
+    extract_batch_factory,
+):
+    first_owner = owner_factory(name="First Owner")
+    second_owner = owner_factory(name="Second Owner")
+    property_record = property_factory(
+        property_name="Shared property in extract",
+        equity_participations=[
+            {
+                "owner_key": first_owner["key"],
+                "participation_percentage": 50,
+            },
+            {
+                "owner_key": second_owner["key"],
+                "participation_percentage": 50,
+            },
+        ],
+    )
+    contract = contract_factory(
+        payload={"property_key": property_record["key"]}
+    )
+    batch = extract_batch_factory(contract_key=contract["key"])
+
+    response = auth_client.get("/extract-batches")
+
+    assert response.status_code == 200
+    batch_dto = next(
+        item for item in response.json()["data"] if item["key"] == batch["key"]
+    )
+    property_dto = batch_dto["extracts"][0]["contract"]["property"]
+    assert "owner" not in property_dto
+    assert [
+        participation["owner"]["name"]
+        for participation in property_dto["equity_participations"]
+    ] == ["First Owner", "Second Owner"]
+
+
 def test_get_all_extract_batches_with_params(auth_client, base_contract_key):
     response = auth_client.get("/extract-batches?skip=0&limit=5&only_active_contracts=true")
     assert response.status_code == 200

@@ -30,6 +30,60 @@ class PropertyNotFoundError(BaseAppException):
             property_key=property_key
         )
 
+class PropertyEquityParticipationRequiredError(BaseAppException):
+    def __init__(self):
+        super().__init__(
+            status_code=422,
+            code="RM-0029",
+            message_en="A property must have at least one owner participation when created.",
+            message_pt="O imóvel deve ter ao menos uma participação de proprietário ao ser criado.",
+        )
+
+class PropertyEquityParticipationInvalidPercentageError(BaseAppException):
+    def __init__(self, owner_key: str, percentage: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0030",
+            message_en=(
+                "The participation percentage for owner {owner_key} must be "
+                "between 0.01 and 100 with at most two decimal places; "
+                "received {percentage}."
+            ),
+            message_pt=(
+                "A participação do proprietário {owner_key} deve ser de "
+                "0,01 a 100, com no máximo duas casas decimais; "
+                "recebido {percentage}."
+            ),
+            owner_key=owner_key,
+            percentage=percentage,
+        )
+
+class PropertyEquityParticipationTotalExceededError(BaseAppException):
+    def __init__(self, total_percentage: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0031",
+            message_en=(
+                "The total property participation cannot exceed 100%; "
+                "received {total_percentage}."
+            ),
+            message_pt=(
+                "A soma das participações do imóvel não pode exceder 100%; "
+                "recebido {total_percentage}."
+            ),
+            total_percentage=total_percentage,
+        )
+
+class PropertyEquityDuplicateOwnerError(BaseAppException):
+    def __init__(self, owner_key: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0032",
+            message_en="Owner {owner_key} may only appear once per property.",
+            message_pt="O proprietário {owner_key} só pode aparecer uma vez por imóvel.",
+            owner_key=owner_key,
+        )
+
 class RealEstateNotFoundError(BaseAppException):
     def __init__(self, real_estate_key: str):
         super().__init__(

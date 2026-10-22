@@ -18,7 +18,3 @@ class PropertyModel(Base):
 
     address = Column(String, nullable=False)
     room_count = Column(Integer, default=0, nullable=False)
-
-    @property
-    def owner(self):
-        return self.equity_participations[0].owner if self.equity_participations else None

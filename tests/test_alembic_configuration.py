@@ -11,7 +11,7 @@ INITIAL_MIGRATION_PATH = (
     / "versions"
     / "84032990799d_initial_migration.py"
 )
-CURRENT_MIGRATION_PATH = (
+CLEANUP_MIGRATION_PATH = (
     Path(__file__).parent.parent
     / "alembic"
     / "versions"
@@ -20,7 +20,9 @@ CURRENT_MIGRATION_PATH = (
 
 
 def _migration_operations(function_name: str) -> list[ast.Call]:
-    migration_tree = ast.parse(CURRENT_MIGRATION_PATH.read_text(encoding="utf-8"))
+    migration_tree = ast.parse(
+        CLEANUP_MIGRATION_PATH.read_text(encoding="utf-8")
+    )
     function = next(
         node
         for node in migration_tree.body
@@ -129,7 +131,7 @@ def test_initial_migration_has_named_foreign_keys_and_explicit_casts():
     )
     assert all(arguments[0] != "None" for arguments in dropped_foreign_keys)
 
-    migration_source = CURRENT_MIGRATION_PATH.read_text(encoding="utf-8")
+    migration_source = CLEANUP_MIGRATION_PATH.read_text(encoding="utf-8")
     assert 'postgresql_using="extract_batch_id::integer"' in migration_source
     assert 'postgresql_using="type::text::guaranteetypeenum"' in migration_source
     assert 'postgresql_using="type::text"' in migration_source
@@ -137,7 +139,7 @@ def test_initial_migration_has_named_foreign_keys_and_explicit_casts():
 
 def test_cleanup_migration_follows_stamped_initial_revision():
     migration_tree = ast.parse(
-        CURRENT_MIGRATION_PATH.read_text(encoding="utf-8")
+        CLEANUP_MIGRATION_PATH.read_text(encoding="utf-8")
     )
     initial_tree = ast.parse(
         INITIAL_MIGRATION_PATH.read_text(encoding="utf-8")
@@ -166,3 +168,29 @@ def test_cleanup_migration_follows_stamped_initial_revision():
 
     assert current_revision == "7532217ba049"
     assert current_parent == initial_revision == "84032990799d"
+
+
+def test_drop_owner_column_migration_follows_equity_data_migration():
+    migration_path = (
+        Path(__file__).parent.parent
+        / "alembic"
+        / "versions"
+        / "f8027ea5bc90_drop_legacy_property_owner_id.py"
+    )
+    migration_tree = ast.parse(migration_path.read_text(encoding="utf-8"))
+    revision = next(
+        node.value.value
+        for node in migration_tree.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and node.target.id == "revision"
+    )
+    parent_revision = next(
+        node.value.value
+        for node in migration_tree.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and node.target.id == "down_revision"
+    )
+    assert revision == "f8027ea5bc90"
+    assert parent_revision == "a2a47c90ef81"

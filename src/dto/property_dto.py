@@ -10,7 +10,6 @@ class EquityParticipationDTO(BaseModel):
 class PropertyDTO(BaseModel):
     key: str
     property_name: str
-    owner: OwnerDTO
     equity_participations: list[EquityParticipationDTO]
     address: str
     room_count: int

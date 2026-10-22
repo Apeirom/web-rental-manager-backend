@@ -1,6 +1,9 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
-from src.constants.property_constants import EQUITY_PARTICIPATION_PERCENTAGE_BASE
+from src.constants.property_constants import (
+    EQUITY_PARTICIPATION_MINIMUM_PERCENTAGE,
+    EQUITY_PARTICIPATION_PERCENTAGE_BASE,
+)
 from src.repository.property_repository import PropertyRepository
 from src.repository.owner_repository import OwnerRepository
 from src.schemas.property_schema import (
@@ -10,7 +13,14 @@ from src.schemas.property_schema import (
 )
 from src.dto.property_dto import PropertyDTO
 from src.dto.paginated_response import PaginatedResponseDTO
-from src.errors.custom_errors import PropertyNotFoundError, OwnerNotFoundError
+from src.errors.custom_errors import (
+    OwnerNotFoundError,
+    PropertyEquityDuplicateOwnerError,
+    PropertyEquityParticipationInvalidPercentageError,
+    PropertyEquityParticipationRequiredError,
+    PropertyEquityParticipationTotalExceededError,
+    PropertyNotFoundError,
+)
 
 class PropertyController:
     def __init__(
@@ -24,29 +34,64 @@ class PropertyController:
     def _resolve_participations(
         self,
         schema: PropertySchema,
+        require_participation: bool,
     ) -> list[tuple[int, Decimal]]:
-        if schema.equity_participations:
-            requested = [
-                (item.owner_key, item.participation_percentage)
-                for item in schema.equity_participations
-            ]
-        else:
-            if schema.owner_key is None:
-                raise ValueError("Informe ao menos uma participação de proprietário.")
-            requested = [
-                (schema.owner_key, EQUITY_PARTICIPATION_PERCENTAGE_BASE)
-            ]
+        requested = schema.equity_participations
+        if require_participation and not requested:
+            raise PropertyEquityParticipationRequiredError()
+
+        owner_keys: set[str] = set()
+        total_percentage = Decimal("0")
+        for item in requested:
+            if item.owner_key in owner_keys:
+                raise PropertyEquityDuplicateOwnerError(owner_key=item.owner_key)
+            owner_keys.add(item.owner_key)
+
+            percentage = item.participation_percentage
+            valid_percentage = percentage.is_finite()
+            if valid_percentage:
+                try:
+                    quantized_percentage = percentage.quantize(
+                        EQUITY_PARTICIPATION_MINIMUM_PERCENTAGE
+                    )
+                except InvalidOperation:
+                    valid_percentage = False
+                else:
+                    valid_percentage = (
+                        EQUITY_PARTICIPATION_MINIMUM_PERCENTAGE
+                        <= percentage
+                        <= EQUITY_PARTICIPATION_PERCENTAGE_BASE
+                        and quantized_percentage == percentage
+                    )
+
+            if not valid_percentage:
+                raise PropertyEquityParticipationInvalidPercentageError(
+                    owner_key=item.owner_key,
+                    percentage=str(percentage),
+                )
+            total_percentage += percentage
+
+        if total_percentage > EQUITY_PARTICIPATION_PERCENTAGE_BASE:
+            raise PropertyEquityParticipationTotalExceededError(
+                total_percentage=str(total_percentage),
+            )
 
         participations = []
-        for owner_key, percentage in requested:
+        for item in requested:
+            owner_key = item.owner_key
             owner_model = self.owner_repository.get_by_key(owner_key)
             if not owner_model:
                 raise OwnerNotFoundError(owner_key=owner_key)
-            participations.append((owner_model.id, percentage))
+            participations.append(
+                (owner_model.id, item.participation_percentage)
+            )
         return participations
 
     def create_property(self, schema: PropertyCreateSchema) -> PropertyDTO:
-        participations = self._resolve_participations(schema)
+        participations = self._resolve_participations(
+            schema,
+            require_participation=True,
+        )
         property_model = self.property_repository.create(
             property_name=schema.property_name,
             participations=participations,
@@ -96,7 +141,10 @@ class PropertyController:
         if not property_model:
             raise PropertyNotFoundError(property_key=property_key)
 
-        participations = self._resolve_participations(schema)
+        participations = self._resolve_participations(
+            schema,
+            require_participation=False,
+        )
         updated_model = self.property_repository.update(
             property_model=property_model,
             property_name=schema.property_name,

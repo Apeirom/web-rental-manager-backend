@@ -68,7 +68,7 @@ def test_delete_owner(auth_client):
     assert get_res.status_code == 404
 
 
-def test_delete_owner_cascades_properties_and_dependents(
+def test_delete_owner_preserves_properties_and_contract_data(
     auth_client,
     owner_factory,
     property_factory,
@@ -183,18 +183,24 @@ def test_delete_owner_cascades_properties_and_dependents(
 
     assert response.status_code == 204
     assert auth_client.get(f"/owners/{owner['key']}").status_code == 404
-    assert auth_client.get(
-        f"/properties/{owned_property['key']}"
-    ).status_code == 404
-    assert auth_client.get(
-        f"/contracts/{owned_contract['key']}"
-    ).status_code == 404
-    assert (
+    property_response = auth_client.get(f"/properties/{owned_property['key']}")
+    assert property_response.status_code == 200
+    assert property_response.json()["equity_participations"] == []
+    assert auth_client.get(f"/contracts/{owned_contract['key']}").status_code == 200
+
+    preserved_single_batch = (
         db_session.query(ExtractBatchModel)
         .filter(ExtractBatchModel.key == single_extract_batch["key"])
         .first()
-        is None
     )
+    assert preserved_single_batch is not None
+    single_extracts = (
+        db_session.query(ExtractModel)
+        .filter(ExtractModel.extract_batch_id == preserved_single_batch.id)
+        .all()
+    )
+    assert len(single_extracts) == 1
+    assert single_extracts[0].contract.key == owned_contract["key"]
 
     preserved_batch = (
         db_session.query(ExtractBatchModel)
@@ -202,14 +208,16 @@ def test_delete_owner_cascades_properties_and_dependents(
         .first()
     )
     assert preserved_batch is not None
-    assert preserved_batch.total_net_transfer == 500.00
     surviving_extracts = (
         db_session.query(ExtractModel)
         .filter(ExtractModel.extract_batch_id == preserved_batch.id)
         .all()
     )
-    assert len(surviving_extracts) == 1
-    assert surviving_extracts[0].contract.key == unrelated_contract["key"]
+    assert len(surviving_extracts) == 2
+    assert {extract.contract.key for extract in surviving_extracts} == {
+        owned_contract["key"],
+        unrelated_contract["key"],
+    }
 
     assert auth_client.get(
         f"/properties/{unrelated_property['key']}"
@@ -221,8 +229,8 @@ def test_delete_owner_cascades_properties_and_dependents(
     for payment in (single_batch_payment, mixed_batch_payment):
         payment_response = auth_client.get(f"/payments/{payment['key']}")
         assert payment_response.status_code == 200
-        assert payment_response.json()["status"] == "unlinked"
-        assert payment_response.json()["extract_batch_key"] is None
+        assert payment_response.json()["status"] == "linked"
+        assert payment_response.json()["extract_batch_key"] is not None
 
 
 def test_delete_property_preserves_its_owner(

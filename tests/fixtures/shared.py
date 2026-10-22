@@ -103,9 +103,13 @@ def property_factory(auth_client, owner_factory):
             "room_count": room_count,
         }
         if equity_participations is None:
-            payload["owner_key"] = owner_key
-        else:
-            payload["equity_participations"] = equity_participations
+            equity_participations = [
+                {
+                    "owner_key": owner_key,
+                    "participation_percentage": 100,
+                }
+            ]
+        payload["equity_participations"] = equity_participations
         payload.update(overrides)
         return _create(auth_client, "/properties", payload)
 
