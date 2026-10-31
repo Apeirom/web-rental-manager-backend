@@ -17,6 +17,16 @@ class PaymentRepository(BaseRepository):
     
     def get_by_key(self, key: str) -> PaymentModel | None:
         return self.db.query(PaymentModel).filter(PaymentModel.key == key).first()
+
+    def get_by_date_and_amount(self, payment_date: str, amount: float) -> list[PaymentModel]:
+        return (
+            self.db.query(PaymentModel)
+            .filter(
+                PaymentModel.payment_date == payment_date,
+                PaymentModel.amount == amount
+            )
+            .all()
+        )
     
     def update(
         self, 
@@ -69,5 +79,3 @@ class PaymentRepository(BaseRepository):
         total = query.count()
         items = query.offset(skip).limit(limit).all()
         return total, items
-
-    

@@ -104,3 +104,57 @@ def test_delete_payment(auth_client, payment_factory):
 
     delete_res = auth_client.delete(f"/payments/{payment_key}")
     assert delete_res.status_code == 204
+
+def test_create_payment_duplicate_warning(auth_client):
+    payload = {
+        "payment_date": "2026-11-01",
+        "amount": 2500.00
+    }
+    first_res = auth_client.post("/payments", json=payload)
+    assert first_res.status_code == 201
+
+    duplicate_res = auth_client.post("/payments", json=payload)
+    assert duplicate_res.status_code == 409
+    error_detail = duplicate_res.json()["detail"]
+    assert error_detail["code"] == "RM-0033"
+    assert "translation" in error_detail
+    assert "2026-11-01" in error_detail["translation"]
+
+def test_create_payment_duplicate_confirmed(auth_client):
+    payload = {
+        "payment_date": "2026-11-02",
+        "amount": 3500.00
+    }
+    first_res = auth_client.post("/payments", json=payload)
+    assert first_res.status_code == 201
+    first_key = first_res.json()["key"]
+
+    confirmed_payload = {
+        "payment_date": "2026-11-02",
+        "amount": 3500.00,
+        "confirm_duplicate": True
+    }
+    second_res = auth_client.post("/payments", json=confirmed_payload)
+    assert second_res.status_code == 201
+    second_key = second_res.json()["key"]
+    assert first_key != second_key
+
+def test_create_payment_different_date_or_amount(auth_client):
+    base_payload = {
+        "payment_date": "2026-11-03",
+        "amount": 4500.00
+    }
+    res_base = auth_client.post("/payments", json=base_payload)
+    assert res_base.status_code == 201
+
+    res_diff_amount = auth_client.post("/payments", json={
+        "payment_date": "2026-11-03",
+        "amount": 4500.50
+    })
+    assert res_diff_amount.status_code == 201
+
+    res_diff_date = auth_client.post("/payments", json={
+        "payment_date": "2026-11-04",
+        "amount": 4500.00
+    })
+    assert res_diff_date.status_code == 201

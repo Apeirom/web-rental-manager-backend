@@ -30,60 +30,6 @@ class PropertyNotFoundError(BaseAppException):
             property_key=property_key
         )
 
-class PropertyEquityParticipationRequiredError(BaseAppException):
-    def __init__(self):
-        super().__init__(
-            status_code=422,
-            code="RM-0029",
-            message_en="A property must have at least one owner participation when created.",
-            message_pt="O imóvel deve ter ao menos uma participação de proprietário ao ser criado.",
-        )
-
-class PropertyEquityParticipationInvalidPercentageError(BaseAppException):
-    def __init__(self, owner_key: str, percentage: str):
-        super().__init__(
-            status_code=422,
-            code="RM-0030",
-            message_en=(
-                "The participation percentage for owner {owner_key} must be "
-                "between 0.01 and 100 with at most two decimal places; "
-                "received {percentage}."
-            ),
-            message_pt=(
-                "A participação do proprietário {owner_key} deve ser de "
-                "0,01 a 100, com no máximo duas casas decimais; "
-                "recebido {percentage}."
-            ),
-            owner_key=owner_key,
-            percentage=percentage,
-        )
-
-class PropertyEquityParticipationTotalExceededError(BaseAppException):
-    def __init__(self, total_percentage: str):
-        super().__init__(
-            status_code=422,
-            code="RM-0031",
-            message_en=(
-                "The total property participation cannot exceed 100%; "
-                "received {total_percentage}."
-            ),
-            message_pt=(
-                "A soma das participações do imóvel não pode exceder 100%; "
-                "recebido {total_percentage}."
-            ),
-            total_percentage=total_percentage,
-        )
-
-class PropertyEquityDuplicateOwnerError(BaseAppException):
-    def __init__(self, owner_key: str):
-        super().__init__(
-            status_code=422,
-            code="RM-0032",
-            message_en="Owner {owner_key} may only appear once per property.",
-            message_pt="O proprietário {owner_key} só pode aparecer uma vez por imóvel.",
-            owner_key=owner_key,
-        )
-
 class RealEstateNotFoundError(BaseAppException):
     def __init__(self, real_estate_key: str):
         super().__init__(
@@ -134,41 +80,6 @@ class BailInsuranceNotFoundError(BaseAppException):
             bail_insurance_key=bail_insurance_key
         )
 
-
-class IncomeTaxInvalidTenantDocumentError(BaseAppException):
-    def __init__(self, tenant_name: str):
-        super().__init__(
-            status_code=422,
-            code="RM-0026",
-            message_en="Tenant {tenant_name} has an invalid CPF/CNPJ for the income tax report.",
-            message_pt="O inquilino {tenant_name} possui CPF/CNPJ inválido para o relatório de imposto de renda.",
-            tenant_name=tenant_name,
-        )
-
-
-class IncomeTaxInvalidPaymentDateError(BaseAppException):
-    def __init__(self, payment_date: str):
-        super().__init__(
-            status_code=422,
-            code="RM-0027",
-            message_en="Payment date {payment_date} is invalid for the income tax export.",
-            message_pt="A data de pagamento {payment_date} é inválida para a exportação do imposto de renda.",
-            payment_date=payment_date,
-        )
-
-
-class IncomeTaxInvalidPeriodError(BaseAppException):
-    def __init__(self, start_date: str, end_date: str):
-        super().__init__(
-            status_code=422,
-            code="RM-0028",
-            message_en="The start date {start_date} must be on or before the end date {end_date}.",
-            message_pt="A data inicial {start_date} deve ser anterior ou igual à data final {end_date}.",
-            start_date=start_date,
-            end_date=end_date,
-        )
-
-
 class ContractNotFoundError(BaseAppException):
     def __init__(self, contract_key: str):
         super().__init__(
@@ -184,7 +95,7 @@ class ContractInvalidRelationError(BaseAppException):
         super().__init__(
             status_code=400,
             code="RM-0010",
-            message_en="{entity_name} with KEY {key} does not exist.",
+            message_en="{entity_name} com KEY {key} does not exist.",
             message_pt="{entity_name} com KEY {key} não existe.",
             entity_name=entity_name,
             key=key
@@ -270,7 +181,7 @@ class InvalidEnumeratorError(BaseAppException):
             message_pt=f"O valor '{invalid_value}' não é válido para o enumerador de {enumerator_name}."
         )
 
-class NotProvidedCredentials (BaseAppException):
+class NotProvidedCredentials(BaseAppException):
     def __init__(self):
         super().__init__(
             status_code=401,
@@ -322,7 +233,7 @@ class GuaranteeNotFoundError(BaseAppException):
         super().__init__(
             status_code=404,
             code="RM-0024",
-            message_en="Guarantee with KEY {guarantee_key} not found.",
+            message_en="Guarantee with KEY {guarantee_key} não encontrada.",
             message_pt="Garantia com KEY {guarantee_key} não encontrada.",
             guarantee_key=guarantee_key
         )
@@ -335,4 +246,100 @@ class OwnerNotFoundError(BaseAppException):
             message_en="Owner with KEY {owner_key} not found.",
             message_pt="Proprietário com KEY {owner_key} não encontrado.",
             owner_key=owner_key
+        )
+
+class IncomeTaxInvalidTenantDocumentError(BaseAppException):
+    def __init__(self, tenant_name: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0026",
+            message_en="Tenant {tenant_name} has an invalid CPF/CNPJ for the income tax report.",
+            message_pt="O inquilino {tenant_name} possui CPF/CNPJ inválido para o relatório de imposto de renda.",
+            tenant_name=tenant_name,
+        )
+
+class IncomeTaxInvalidPaymentDateError(BaseAppException):
+    def __init__(self, payment_date: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0027",
+            message_en="Payment date {payment_date} is invalid for the income tax export.",
+            message_pt="A data de pagamento {payment_date} é inválida para a exportação do imposto de renda.",
+            payment_date=payment_date,
+        )
+
+class IncomeTaxInvalidPeriodError(BaseAppException):
+    def __init__(self, start_date: str, end_date: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0028",
+            message_en="The start date {start_date} must be on or before the end date {end_date}.",
+            message_pt="A data inicial {start_date} deve ser anterior ou igual à data final {end_date}.",
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+class PropertyEquityParticipationRequiredError(BaseAppException):
+    def __init__(self):
+        super().__init__(
+            status_code=422,
+            code="RM-0029",
+            message_en="A property must have at least one owner participation when created.",
+            message_pt="O imóvel deve ter ao menos uma participação de proprietário ao ser criado.",
+        )
+
+class PropertyEquityParticipationInvalidPercentageError(BaseAppException):
+    def __init__(self, owner_key: str, percentage: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0030",
+            message_en=(
+                "The participation percentage for owner {owner_key} must be "
+                "between 0.01 and 100 with at most two decimal places; "
+                "received {percentage}."
+            ),
+            message_pt=(
+                "A participação do proprietário {owner_key} deve ser de "
+                "0,01 a 100, com no máximo duas casas decimais; "
+                "recebido {percentage}."
+            ),
+            owner_key=owner_key,
+            percentage=percentage,
+        )
+
+class PropertyEquityParticipationTotalExceededError(BaseAppException):
+    def __init__(self, total_percentage: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0031",
+            message_en=(
+                "The total property participation cannot exceed 100%; "
+                "received {total_percentage}."
+            ),
+            message_pt=(
+                "A soma das participações do imóvel não pode exceder 100%; "
+                "recebido {total_percentage}."
+            ),
+            total_percentage=total_percentage,
+        )
+
+class PropertyEquityDuplicateOwnerError(BaseAppException):
+    def __init__(self, owner_key: str):
+        super().__init__(
+            status_code=422,
+            code="RM-0032",
+            message_en="Owner {owner_key} may only appear once per property.",
+            message_pt="O proprietário {owner_key} só pode aparecer uma vez por imóvel.",
+            owner_key=owner_key,
+        )
+
+class PaymentDuplicateWarningError(BaseAppException):
+    def __init__(self, payment_date: str, amount: float):
+        super().__init__(
+            status_code=409,
+            code="RM-0033",
+            message_en="A payment on date {payment_date} with amount {amount} already exists.",
+            message_pt="Já existe um pagamento cadastrado na data {payment_date} com o valor de R$ {amount:.2f}.",
+            payment_date=payment_date,
+            amount=amount
         )
