@@ -4,7 +4,11 @@ from src.repository.extract_batch_repository import ExtractBatchRepository
 from src.schemas.payment_schema import PaymentCreateSchema, PaymentUpdateSchema
 from src.dto.payment_dto import PaymentDTO
 from src.dto.paginated_response import PaginatedResponseDTO
-from src.errors.custom_errors import PaymentNotFoundError, ExtractNotFoundError
+from src.errors.custom_errors import (
+    PaymentNotFoundError, 
+    ExtractNotFoundError, 
+    PaymentDuplicateWarningError
+)
 
 class PaymentController:
     def __init__(self, db: Session):
@@ -12,6 +16,17 @@ class PaymentController:
         self.extract_batch_repository = ExtractBatchRepository(db)
 
     def create_payment(self, schema: PaymentCreateSchema) -> PaymentDTO:
+        if not schema.confirm_duplicate:
+            existing_payments = self.payment_repository.get_by_date_and_amount(
+                payment_date=schema.payment_date,
+                amount=schema.amount
+            )
+            if existing_payments:
+                raise PaymentDuplicateWarningError(
+                    payment_date=schema.payment_date,
+                    amount=schema.amount
+                )
+
         payment_model = self.payment_repository.create(
             payment_date=schema.payment_date,
             amount=schema.amount,
