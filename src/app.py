@@ -39,6 +39,9 @@ origins = [
     "https://web-rental-manager-frontend.vercel.app",
 ]
 
+# AuthMiddleware é registrado antes para que o CORSMiddleware seja a camada mais externa
+app.add_middleware(AuthMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -46,8 +49,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.add_middleware(AuthMiddleware)
 
 @app.get("/", tags=["0. Monitoramento e Sistema"])
 @limiter.limit("100/minute")
