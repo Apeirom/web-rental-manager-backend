@@ -4,6 +4,7 @@ from typing import Optional
 class PaymentCreateSchema(BaseModel):
     payment_date: str
     amount: float
+    confirm_duplicate: Optional[bool] = False
 
 class PaymentUpdateSchema(BaseModel):
     payment_date: str
