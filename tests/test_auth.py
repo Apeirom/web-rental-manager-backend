@@ -58,3 +58,9 @@ def test_access_protected_route_with_invalid_token(client):
     
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid token"
+
+
+def test_access_protected_route_401_includes_cors_header(client):
+    response = client.get("/tenants", headers={"Origin": "http://localhost:3000"})
+    assert response.status_code == 401
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
