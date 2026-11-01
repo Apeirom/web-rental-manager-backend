@@ -9,7 +9,12 @@ from src.schemas.extract_batch_schema import ExtractBatchCreateSchema, ExtractBa
 from src.dto.extract_batch_dto import ExtractBatchDTO
 from src.dto.payment_dto import PaymentReconciliationDTO, PaymentDTO
 from src.dto.paginated_response import PaginatedResponseDTO
-from src.errors.custom_errors import ExtractNotFoundError, ExtractInvalidRelationError, ExtractBatchNotFoundError
+from src.errors.custom_errors import (
+    ExtractNotFoundError, 
+    ExtractInvalidRelationError, 
+    ExtractBatchNotFoundError,
+    ExtractDuplicateWarningError
+)
 from src.connectors.S3_storage_connector import S3StorageConnector
 from src.utils.file_handler import verify_file_path
 
@@ -63,6 +68,49 @@ class ExtractBatchController:
         return net_transfer
 
     def create_batch(self, schema: ExtractBatchCreateSchema) -> ExtractBatchDTO:
+        if not schema.confirm_duplicate:
+            seen_extracts = set()
+            for ext in schema.extracts:
+                key_tuple = (ext.contract_key, ext.month_ref, ext.year_ref)
+                if key_tuple in seen_extracts:
+                    contract_model = self.contract_repository.get_by_key(ext.contract_key)
+                    tenant_name = contract_model.tenant.name if contract_model and contract_model.tenant else "Inquilino"
+                    property_name = contract_model.property.property_name if contract_model and contract_model.property else "Imóvel"
+                    if contract_model and contract_model.room_name:
+                        property_name = f"{property_name} - {contract_model.room_name}"
+                    raise ExtractDuplicateWarningError(
+                        month_ref=ext.month_ref,
+                        year_ref=ext.year_ref,
+                        tenant_name=tenant_name,
+                        property_name=property_name,
+                        duplicate_type="intra_batch",
+                        contract_key=ext.contract_key,
+                    )
+                seen_extracts.add(key_tuple)
+
+            for ext in schema.extracts:
+                contract_model = self.contract_repository.get_by_key(ext.contract_key)
+                if not contract_model:
+                    raise ExtractInvalidRelationError(entity_name="Contract", key=ext.contract_key)
+                existing_extracts = self.extract_repository.get_by_contract_and_reference(
+                    contract_id=contract_model.id,
+                    month_ref=ext.month_ref,
+                    year_ref=ext.year_ref
+                )
+                if existing_extracts:
+                    tenant_name = contract_model.tenant.name if contract_model.tenant else "Inquilino"
+                    property_name = contract_model.property.property_name if contract_model.property else "Imóvel"
+                    if contract_model.room_name:
+                        property_name = f"{property_name} - {contract_model.room_name}"
+                    raise ExtractDuplicateWarningError(
+                        month_ref=ext.month_ref,
+                        year_ref=ext.year_ref,
+                        tenant_name=tenant_name,
+                        property_name=property_name,
+                        duplicate_type="database",
+                        contract_key=ext.contract_key,
+                    )
+
         batch_model = self.extract_batch_repository.create(total_net_transfer=0.0, file_path=schema.file_path)
         
         total_net_transfer = 0.0

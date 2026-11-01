@@ -39,7 +39,6 @@ origins = [
     "https://web-rental-manager-frontend.vercel.app",
 ]
 
-# AuthMiddleware é registrado antes para que o CORSMiddleware seja a camada mais externa
 app.add_middleware(AuthMiddleware)
 
 app.add_middleware(

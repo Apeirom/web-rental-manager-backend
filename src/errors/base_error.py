@@ -5,6 +5,7 @@ class BaseAppException(HTTPException):
         detail = {
             "code": code,
             "message": message_en.format(**kwargs),
-            "translation": message_pt.format(**kwargs)
+            "translation": message_pt.format(**kwargs),
+            "details": kwargs
         }
         super().__init__(status_code=status_code, detail=detail)

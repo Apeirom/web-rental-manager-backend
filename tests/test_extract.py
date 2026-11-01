@@ -469,6 +469,7 @@ def test_update_extract_batch_delete_and_add_calculates_total_correctly(auth_cli
 
 def test_update_extract_batch_complex_scenario_calculates_total_correctly(auth_client, base_contract_key):
     create_payload = {
+        "confirm_duplicate": True,
         "extracts": [
             {
                 "month_ref": 1,
@@ -520,3 +521,108 @@ def test_update_extract_batch_complex_scenario_calculates_total_correctly(auth_c
         total_calculated += ext["net_transfer"]
 
     assert update_data["total_net_transfer"] == total_calculated
+
+
+def test_create_extract_batch_duplicate_warning(auth_client, base_contract_key):
+    payload = {
+        "extracts": [
+            {
+                "month_ref": 5,
+                "year_ref": 2026,
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Aluguel", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False}
+                ]
+            }
+        ]
+    }
+    first_res = auth_client.post("/extract-batches", json=payload)
+    assert first_res.status_code == 201
+
+    duplicate_res = auth_client.post("/extract-batches", json=payload)
+    assert duplicate_res.status_code == 409
+    error_detail = duplicate_res.json()["detail"]
+    assert error_detail["code"] == "RM-0034"
+    assert "translation" in error_detail
+    assert "05/2026" in error_detail["translation"] or "5/2026" in error_detail["translation"]
+
+def test_create_extract_batch_duplicate_confirmed(auth_client, base_contract_key):
+    payload = {
+        "extracts": [
+            {
+                "month_ref": 6,
+                "year_ref": 2026,
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Aluguel", "amount": 1200.00, "is_credit": True, "is_withheld_at_source": False}
+                ]
+            }
+        ]
+    }
+    first_res = auth_client.post("/extract-batches", json=payload)
+    assert first_res.status_code == 201
+
+    confirmed_payload = {
+        **payload,
+        "confirm_duplicate": True
+    }
+    second_res = auth_client.post("/extract-batches", json=confirmed_payload)
+    assert second_res.status_code == 201
+    assert second_res.json()["key"] != first_res.json()["key"]
+
+def test_create_extract_batch_intra_batch_duplicate(auth_client, base_contract_key):
+    payload = {
+        "extracts": [
+            {
+                "month_ref": 7,
+                "year_ref": 2026,
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Extrato 1", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False}
+                ]
+            },
+            {
+                "month_ref": 7,
+                "year_ref": 2026,
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Extrato 2", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False}
+                ]
+            }
+        ]
+    }
+    res = auth_client.post("/extract-batches", json=payload)
+    assert res.status_code == 409
+    error_detail = res.json()["detail"]
+    assert error_detail["code"] == "RM-0034"
+
+def test_create_extract_batch_different_reference_or_contract(auth_client, base_contract_key):
+    payload1 = {
+        "extracts": [
+            {
+                "month_ref": 8,
+                "year_ref": 2026,
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Aluguel", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False}
+                ]
+            }
+        ]
+    }
+    payload2 = {
+        "extracts": [
+            {
+                "month_ref": 9,
+                "year_ref": 2026,
+                "contract_key": base_contract_key,
+                "items": [
+                    {"category": "rent", "description": "Aluguel", "amount": 1000.00, "is_credit": True, "is_withheld_at_source": False}
+                ]
+            }
+        ]
+    }
+    res1 = auth_client.post("/extract-batches", json=payload1)
+    assert res1.status_code == 201
+
+    res2 = auth_client.post("/extract-batches", json=payload2)
+    assert res2.status_code == 201
