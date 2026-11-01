@@ -218,3 +218,11 @@ __marimo__/
 .streamlit/secrets.toml
 .env
 create_master.py
+
+# Local SQLite testing databases
+dev_local.db
+dev_local.db-journal
+dev_local.db-wal
+dev_local.db-shm
+*.sqlite3
+*.db
