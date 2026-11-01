@@ -31,15 +31,38 @@ O projeto segue os princípios de **Clean Architecture** e **Separation of Conce
 ├── 📁 schemas/      # Contratos de Entrada (Validação de payload via Pydantic)
 ├── 📁 utils/        # Ferramentas auxiliares (Segurança, Conexão com o BD, Rate Limit)
 └── 📄 app.py        # Ponto de entrada do sistema, orquestração de middlewares e registro das rotas
+```
 
 ---
 
-uvicorn src.app:app --reload
-https://web-retal-manager-backend.onrender.com/docs
+## 🚀 Execução em Desenvolvimento Padrão
 
-## Migrações do banco
+```bash
+uvicorn src.app:app --reload
+```
+Swagger interativo da API: https://web-retal-manager-backend.onrender.com/docs
+
+## 🗄️ Migrações do Banco (Alembic)
 
 O Alembic é o único fluxo ativo para versionar e aplicar alterações no schema.
 Revise cada revisão gerada antes de executá-la com `alembic upgrade head`.
 Os scripts SQL em `migrations/` são artefatos legados e não devem ser executados;
 eles podem divergir do estado atual do schema e das revisões Alembic.
+
+---
+
+## 🧪 Ambiente de Testes Local (Isolado e Seguro)
+
+Para testar a API e o Frontend localmente sem apontar para o banco de produção, execute o script de inicialização local:
+
+```bash
+python run_local.py
+```
+
+### O que esse comando faz:
+1. Cria e conecta a API a um banco de dados SQLite local isolado (`dev_local.db`).
+2. Executa automaticamente todas as migrações do Alembic (`alembic upgrade head`).
+3. Alimenta o banco com dados realistas de teste (seeds):
+   - **Usuário Administrador Master:** `admin@rentalmanager.com` | Senha: `admin123`
+   - Imobiliária padrão, Proprietários, Imóveis com participações societárias, Inquilinos, Garantias e Contratos ativos.
+4. Sobe o servidor FastAPI em `http://localhost:8000` com documentação interativa em `http://localhost:8000/docs`.
