@@ -92,7 +92,7 @@ class PropertyRepository(BaseRepository):
             query = query.filter(
                 or_(
                     PropertyModel.property_name.ilike(f"%{search_term}%"),
-                    OwnerModel.name.ilike(f"%{search_term}%") # Busca pelo nome na tabela associada
+                    OwnerModel.name.ilike(f"%{search_term}%")
                 )
             )
 

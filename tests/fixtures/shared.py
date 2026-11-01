@@ -199,6 +199,7 @@ def extract_batch_factory(auth_client, contract_factory):
             extract.setdefault("contract_key", contract_key)
 
         batch_payload["extracts"] = batch_extracts
+        batch_payload.setdefault("confirm_duplicate", overrides.get("confirm_duplicate", True))
         return _create(auth_client, "/extract-batches", batch_payload)
 
     return create_extract_batch

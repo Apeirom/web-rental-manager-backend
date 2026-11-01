@@ -343,3 +343,34 @@ class PaymentDuplicateWarningError(BaseAppException):
             payment_date=payment_date,
             amount=amount
         )
+
+
+class ExtractDuplicateWarningError(BaseAppException):
+    def __init__(
+        self,
+        month_ref: int,
+        year_ref: int,
+        tenant_name: str = "Inquilino",
+        property_name: str = "Imóvel",
+        duplicate_type: str = "database",
+        contract_key: str = "",
+    ):
+        if duplicate_type == "intra_batch":
+            message_en = "The batch contains duplicate extracts for tenant '{tenant_name}' in property '{property_name}' for reference {month_ref:02d}/{year_ref}."
+            message_pt = "O lote contém extratos duplicados para o inquilino {tenant_name} no imóvel {property_name} na competência {month_ref:02d}/{year_ref}."
+        else:
+            message_en = "An extract for tenant '{tenant_name}' in property '{property_name}' for reference {month_ref:02d}/{year_ref} already exists."
+            message_pt = "Já existe um extrato cadastrado para o inquilino {tenant_name} no imóvel {property_name} na competência {month_ref:02d}/{year_ref}."
+
+        super().__init__(
+            status_code=409,
+            code="RM-0034",
+            message_en=message_en,
+            message_pt=message_pt,
+            month_ref=month_ref,
+            year_ref=year_ref,
+            tenant_name=tenant_name,
+            property_name=property_name,
+            duplicate_type=duplicate_type,
+            contract_key=contract_key,
+        )

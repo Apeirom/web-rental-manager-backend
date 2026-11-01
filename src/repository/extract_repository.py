@@ -24,6 +24,17 @@ class ExtractRepository(BaseRepository):
             joinedload(ExtractModel.items).joinedload(ExtractItemModel.category)
         ).filter(ExtractModel.key == extract_key).first()
 
+    def get_by_contract_and_reference(self, contract_id: int, month_ref: int, year_ref: int) -> list[ExtractModel]:
+        return (
+            self.db.query(ExtractModel)
+            .filter(
+                ExtractModel.contract_id == contract_id,
+                ExtractModel.month_ref == month_ref,
+                ExtractModel.year_ref == year_ref,
+            )
+            .all()
+        )
+
     def get_by_contract_ids(self, contract_ids: set[int]) -> list[ExtractModel]:
         if not contract_ids:
             return []

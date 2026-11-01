@@ -15,7 +15,6 @@ def test_create_owner(auth_client):
     assert "id" not in response.json()
 
 def test_get_all_owners(auth_client):
-    # Garantir que existe pelo menos um
     auth_client.post("/owners", json={"name": "Ana Paula", "document_number": "98765432100"})
     
     response = auth_client.get("/owners")
@@ -41,7 +40,6 @@ def test_get_owner_by_key(auth_client):
 def test_get_owner_not_found(auth_client):
     response = auth_client.get("/owners/invalid-uuid-key")
     assert response.status_code == 404
-    # Ajuste o código do erro ("RM-XXXX") conforme o mapeamento do seu OwnerNotFoundError
     assert "detail" in response.json() 
 
 def test_update_owner(auth_client):

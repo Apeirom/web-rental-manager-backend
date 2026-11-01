@@ -62,7 +62,6 @@ def test_get_property_by_key(auth_client, owner_factory):
 def test_get_property_not_found(auth_client):
     response = auth_client.get("/properties/invalid-uuid-key")
     assert response.status_code == 404
-    # Ajuste o código conforme o RM-0003 do seu PropertyNotFoundError
     assert response.json()["detail"]["code"] == "RM-0003" 
 
 def test_update_property(auth_client, owner_factory):
@@ -79,7 +78,6 @@ def test_update_property(auth_client, owner_factory):
     create_res = auth_client.post("/properties", json=payload)
     property_key = create_res.json()["key"]
 
-    # Atualizando dados do imóvel
     update_payload = {
         "property_name": "Apt 103B",
         "equity_participations": [
