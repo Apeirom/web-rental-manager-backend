@@ -8,8 +8,8 @@ class PaymentModel(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
-    payment_date = Column(String, nullable=False)
-    amount = Column(Float, nullable=False)
+    payment_date = Column(String, nullable=False, index=True)
+    amount = Column(Float, nullable=False, index=True)
 
     extract_batch = relationship("ExtractBatchModel", back_populates="payment", uselist=False)
     

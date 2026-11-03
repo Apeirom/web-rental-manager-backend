@@ -1,6 +1,3 @@
-from src.models import ExtractBatchModel, ExtractModel
-
-
 def test_create_owner(auth_client):
     payload = {
         "name": "Carlos Silva",
@@ -74,7 +71,6 @@ def test_delete_owner_preserves_properties_and_contract_data(
     contract_factory,
     extract_batch_factory,
     payment_factory,
-    db_session,
 ):
     owner = owner_factory(name="Owner to delete")
     owned_property = property_factory(
@@ -186,33 +182,17 @@ def test_delete_owner_preserves_properties_and_contract_data(
     assert property_response.json()["equity_participations"] == []
     assert auth_client.get(f"/contracts/{owned_contract['key']}").status_code == 200
 
-    preserved_single_batch = (
-        db_session.query(ExtractBatchModel)
-        .filter(ExtractBatchModel.key == single_extract_batch["key"])
-        .first()
-    )
-    assert preserved_single_batch is not None
-    single_extracts = (
-        db_session.query(ExtractModel)
-        .filter(ExtractModel.extract_batch_id == preserved_single_batch.id)
-        .all()
-    )
-    assert len(single_extracts) == 1
-    assert single_extracts[0].contract.key == owned_contract["key"]
+    single_batch_res = auth_client.get(f"/extract-batches/{single_extract_batch['key']}")
+    assert single_batch_res.status_code == 200
+    single_batch_data = single_batch_res.json()
+    assert len(single_batch_data["extracts"]) == 1
+    assert single_batch_data["extracts"][0]["contract"]["key"] == owned_contract["key"]
 
-    preserved_batch = (
-        db_session.query(ExtractBatchModel)
-        .filter(ExtractBatchModel.key == mixed_extract_batch["key"])
-        .first()
-    )
-    assert preserved_batch is not None
-    surviving_extracts = (
-        db_session.query(ExtractModel)
-        .filter(ExtractModel.extract_batch_id == preserved_batch.id)
-        .all()
-    )
-    assert len(surviving_extracts) == 2
-    assert {extract.contract.key for extract in surviving_extracts} == {
+    mixed_batch_res = auth_client.get(f"/extract-batches/{mixed_extract_batch['key']}")
+    assert mixed_batch_res.status_code == 200
+    mixed_batch_data = mixed_batch_res.json()
+    assert len(mixed_batch_data["extracts"]) == 2
+    assert {ext["contract"]["key"] for ext in mixed_batch_data["extracts"]} == {
         owned_contract["key"],
         unrelated_contract["key"],
     }

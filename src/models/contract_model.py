@@ -17,22 +17,26 @@ class ContractModel(Base):
         Integer,
         ForeignKey("properties.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     tenant_id = Column(
         Integer,
         ForeignKey("tenants.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     real_estate_id = Column(
         Integer,
         ForeignKey("real_estates.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
-    status_id = Column(Integer, ForeignKey("contract_statuses.id"), nullable=False)
+    status_id = Column(Integer, ForeignKey("contract_statuses.id"), nullable=False, index=True)
     guarantee_id = Column(
         Integer,
         ForeignKey("guarantees.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
 
     property = relationship("PropertyModel")
