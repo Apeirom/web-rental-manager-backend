@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, with_polymorphic
+from sqlalchemy import or_
 from src.repository.base_repository import BaseRepository
 from src.models import (
     GuaranteeModel, 
@@ -46,13 +47,24 @@ class GuaranteeRepository(BaseRepository):
         self,
         skip: int = 0,
         limit: int = 10,
-        guarantee_type: str | None = None
+        guarantee_types: list[str] | None = None,
+        search_term: str | None = None
     ) -> tuple[int, list[GuaranteeModel]]:
         
-        query = self.db.query(GuaranteeModel)
+        poly = with_polymorphic(GuaranteeModel, [GuarantorModel, BailInsuranceModel])
+        query = self.db.query(poly)
 
-        if guarantee_type:
-            query = query.filter(GuaranteeModel.type == guarantee_type)
+        if guarantee_types:
+            query = query.filter(poly.type.in_(guarantee_types))
+
+        if search_term:
+            query = query.filter(
+                or_(
+                    poly.GuarantorModel.name.ilike(f"%{search_term}%"),
+                    poly.GuarantorModel.document_number.ilike(f"%{search_term}%"),
+                    poly.BailInsuranceModel.insurance_company.ilike(f"%{search_term}%")
+                )
+            )
 
         total_count = query.count()
         items = query.offset(skip).limit(limit).all()
