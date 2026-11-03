@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from src.database.config import get_db
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from src.dto.paginated_response import PaginatedResponseDTO
+
 from src.dto.guarantee_dto import DepositDTO, GuarantorDTO, BailInsuranceDTO
 from src.schemas.guarantee_schema import GuaranteeSchema
 from src.controller.guarantee_controller import GuaranteeController
@@ -18,6 +19,7 @@ guarantee_router = APIRouter(
     dependencies=[Depends(bearer_scheme)]
 )
 
+
 @guarantee_router.post("", response_model=Union[GuarantorDTO, DepositDTO, BailInsuranceDTO], status_code=status.HTTP_201_CREATED)
 def create_guarantee(schema: GuaranteeSchema, db: Session = Depends(get_db)):
     return GuaranteeController(db).create_guarantee(schema)
@@ -27,9 +29,20 @@ def list_guarantees(
     skip: int = 0, 
     limit: int = 10, 
     guarantee_type: Optional[str] = None,
+    guarantee_types: Optional[List[str]] = Query(None),
+    search_term: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    return GuaranteeController(db).get_paginated_guarantees(skip=skip, limit=limit, guarantee_type=guarantee_type)
+    selected_types = guarantee_types
+    if not selected_types and guarantee_type:
+        selected_types = [guarantee_type]
+
+    return GuaranteeController(db).get_paginated_guarantees(
+        skip=skip, 
+        limit=limit, 
+        guarantee_types=selected_types, 
+        search_term=search_term
+    )
 
 @guarantee_router.get("/{guarantee_key}", response_model=Union[GuarantorDTO, DepositDTO, BailInsuranceDTO])
 def get_guarantee(guarantee_key: str, db: Session = Depends(get_db)):

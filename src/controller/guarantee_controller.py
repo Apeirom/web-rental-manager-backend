@@ -74,13 +74,15 @@ class GuaranteeController:
         self, 
         skip: int = 0, 
         limit: int = 10, 
-        guarantee_type: str = None
+        guarantee_types: list[str] = None,
+        search_term: str = None
     ) -> PaginatedResponseDTO[Union[GuarantorDTO, DepositDTO, BailInsuranceDTO]]:
         
         total_count, models = self.guarantee_repository.get_paginated(
             skip=skip, 
             limit=limit, 
-            guarantee_type=guarantee_type
+            guarantee_types=guarantee_types,
+            search_term=search_term
         )
         
         dtos = []

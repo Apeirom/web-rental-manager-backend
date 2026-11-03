@@ -107,3 +107,54 @@ def test_delete_guarantee(auth_client):
 
     get_response = auth_client.get(f"/guarantees/{guarantee_key}")
     assert get_response.status_code == 404
+
+
+def test_search_guarantees(auth_client):
+    auth_client.post("/guarantees", json={
+        "type": "guarantor",
+        "name": "Maria Searchable Silva",
+        "document_number": "529.982.247-25"
+    })
+    auth_client.post("/guarantees", json={
+        "type": "bail_insurance",
+        "value": 2500.00,
+        "validity": "2028-01-01",
+        "insurance_company": "Porto Seguro Especial"
+    })
+
+    res_name = auth_client.get("/guarantees?search_term=Searchable")
+    assert res_name.status_code == 200
+    assert any(item.get("name") == "Maria Searchable Silva" for item in res_name.json()["data"])
+
+    res_doc = auth_client.get("/guarantees?search_term=529.982")
+    assert res_doc.status_code == 200
+    assert any(item.get("document_number") == "529.982.247-25" for item in res_doc.json()["data"])
+
+    res_ins = auth_client.get("/guarantees?search_term=Porto Seguro")
+    assert res_ins.status_code == 200
+    assert any(item.get("insurance_company") == "Porto Seguro Especial" for item in res_ins.json()["data"])
+
+
+def test_filter_multiple_guarantee_types(auth_client):
+    auth_client.post("/guarantees", json={
+        "type": "deposit",
+        "amount": 4000.00
+    })
+    auth_client.post("/guarantees", json={
+        "type": "guarantor",
+        "name": "Carlos Fiador",
+        "document_number": "529.982.247-25"
+    })
+    auth_client.post("/guarantees", json={
+        "type": "bail_insurance",
+        "value": 1200.00,
+        "validity": "2029-01-01",
+        "insurance_company": "SulAmerica"
+    })
+
+    res = auth_client.get("/guarantees?guarantee_types=guarantor&guarantee_types=bail_insurance")
+    assert res.status_code == 200
+    types = [item["type"] for item in res.json()["data"]]
+    assert "deposit" not in types
+    assert "guarantor" in types
+    assert "bail_insurance" in types
