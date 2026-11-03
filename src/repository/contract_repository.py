@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, update
 from src.repository.base_repository import BaseRepository
 from src.models import (
@@ -153,7 +153,13 @@ class ContractRepository(BaseRepository):
         status: str | None = None
     ) -> tuple[int, list[ContractModel]]:
         
-        query = self.db.query(ContractModel)
+        query = self.db.query(ContractModel).options(
+            joinedload(ContractModel.property),
+            joinedload(ContractModel.tenant),
+            joinedload(ContractModel.real_estate),
+            joinedload(ContractModel.status),
+            joinedload(ContractModel.guarantee),
+        )
 
         if search_term:
             query = query.join(ContractModel.property).join(ContractModel.tenant).filter(

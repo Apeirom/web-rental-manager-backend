@@ -82,3 +82,37 @@ def auth_client(client, db_session):
     client.headers.update({"Authorization": f"Bearer {token}"})
     
     return client
+
+
+@pytest.fixture
+def non_master_client(client, db_session):
+    regular_user = UserModel(
+        key="regular-test-key",
+        name="Regular User",
+        email="regular@test.com",
+        role="user",
+        hashed_password="fakehashedpassword"
+    )
+    db_session.add(regular_user)
+    db_session.commit()
+
+    token = create_access_token({"key": "regular-test-key", "email": "regular@test.com", "role": "user"})
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    return client
+
+
+@pytest.fixture
+def demoted_master_client(client, db_session):
+    demoted_user = UserModel(
+        key="demoted-user-key",
+        name="Demoted User",
+        email="demoted@test.com",
+        role="user",
+        hashed_password="fakehashedpassword"
+    )
+    db_session.add(demoted_user)
+    db_session.commit()
+
+    token = create_access_token({"key": "demoted-user-key", "email": "demoted@test.com", "role": "master"})
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    return client
