@@ -87,3 +87,47 @@ def test_update_user_role(auth_client):
     
     assert response.status_code == 200
     assert response.json()["role"] == "manager"
+
+
+def test_update_password_requires_current_password(auth_client):
+    payload = {
+        "password": "brandnewpassword123"
+    }
+    response = auth_client.put("/users/me", json=payload)
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "RM-0037"
+
+
+def test_update_password_wrong_current_password(auth_client):
+    payload = {
+        "current_password": "wrongpassword",
+        "password": "brandnewpassword123"
+    }
+    response = auth_client.put("/users/me", json=payload)
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "RM-0038"
+
+
+def test_admin_reset_password_success(auth_client, client):
+    create_payload = {
+        "name": "User To Reset",
+        "email": "reset.me@test.com",
+        "password": "oldpassword123"
+    }
+    create_res = auth_client.post("/users/register", json=create_payload)
+    user_key = create_res.json()["key"]
+
+    reset_payload = {"new_password": "newtemporarysecret999"}
+    reset_res = auth_client.post(f"/users/{user_key}/reset-password", json=reset_payload)
+    assert reset_res.status_code == 200
+
+    login_res = client.post("/auth/login", json={"email": "reset.me@test.com", "password": "newtemporarysecret999"})
+    assert login_res.status_code == 200
+    assert "token" in login_res.json()
+
+
+def test_admin_reset_password_forbidden_for_non_master(non_master_client):
+    reset_payload = {"new_password": "maliciousresetpassword"}
+    reset_res = non_master_client.post("/users/target-user-key/reset-password", json=reset_payload)
+    assert reset_res.status_code == 403
+    assert reset_res.json()["detail"]["code"] == "RM-0020"

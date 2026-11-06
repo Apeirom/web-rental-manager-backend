@@ -17,6 +17,7 @@ from src.errors.custom_errors import (
 )
 from src.connectors.S3_storage_connector import S3StorageConnector
 from src.utils.file_handler import verify_file_path
+from src.utils.file_validation import validate_pdf_file
 
 class ExtractBatchController:
     def __init__(self, db: Session):
@@ -260,12 +261,14 @@ class ExtractBatchController:
         return PaginatedResponseDTO(total=total, skip=skip, limit=limit, data=extract_dtos)
 
     def upload_receipt(self, batch_key: str, file_bytes: bytes, content_type: str) -> ExtractBatchDTO:
+        validate_pdf_file(file_bytes)
+
         batch_model = self.extract_batch_repository.get_by_key(batch_key)
         if not batch_model:
             raise ExtractBatchNotFoundError(batch_key)
         
-        extension = ".pdf" if "pdf" in content_type else ""
-        file_url = self.S3_connector.upload_file(file_bytes, f"{batch_key}_v1{extension}", content_type)
+        file_name = f"{batch_key}_v1.pdf"
+        file_url = self.S3_connector.upload_file(file_bytes, file_name, "application/pdf")
         batch_model.file_path = file_url
         self.extract_batch_repository.commit()
         return ExtractBatchDTO.model_validate(batch_model)

@@ -12,6 +12,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.errors.custom_errors import ContractNotFoundError, ContractInvalidRelationError, InvalidEnumeratorError
 from src.connectors.S3_storage_connector import S3StorageConnector
 from src.utils.file_handler import verify_file_path
+from src.utils.file_validation import validate_pdf_file
 
 class ContractController:
     def __init__(self, db: Session):
@@ -201,17 +202,18 @@ class ContractController:
         )
 
     def upload_document(self, contract_key: str, file_bytes: bytes, content_type: str) -> ContractDTO:
+        validate_pdf_file(file_bytes)
+
         contract_model = self.contract_repository.get_by_key(contract_key)
         if not contract_model:
             raise ContractNotFoundError(contract_key=contract_key)
         
-        extension = ".pdf" if "pdf" in content_type else ""
-        file_name = f"{contract_key}_v1{extension}"
+        file_name = f"{contract_key}_v1.pdf"
 
         file_url = self.S3_connector.upload_file(
             file_bytes=file_bytes,
             file_name=file_name,
-            content_type=content_type
+            content_type="application/pdf"
         )
 
         contract_model = self.contract_repository.update_file_path(

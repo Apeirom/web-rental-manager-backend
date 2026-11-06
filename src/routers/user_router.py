@@ -6,8 +6,14 @@ from typing import Optional
 
 from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.user_dto import UserDTO
-from src.schemas.user_schema import UserCreateSchema, UserUpdateSchema, UserRoleUpdateSchema
+from src.schemas.user_schema import (
+    UserCreateSchema,
+    UserUpdateSchema,
+    UserRoleUpdateSchema,
+    AdminResetPasswordSchema,
+)
 from src.controller.user_controller import UserController
+from src.dependencies.authorization import require_master_user
 
 from src.utils.security import get_user_info_by_token
 
@@ -57,3 +63,17 @@ def update_user_role(
 ):      
     controller = UserController(db)
     return controller.update_role(current_user_data, user_key, schema)
+
+@users_router.post(
+    "/{user_key}/reset-password",
+    response_model=UserDTO,
+    dependencies=[Depends(require_master_user)],
+)
+def reset_user_password(
+    user_key: str,
+    schema: AdminResetPasswordSchema,
+    db: Session = Depends(get_db),
+    current_user_data: dict = Depends(get_user_info_by_token)
+):
+    controller = UserController(db)
+    return controller.admin_reset_password(current_user_data, user_key, schema)

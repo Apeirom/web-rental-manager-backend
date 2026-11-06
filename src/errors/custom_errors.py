@@ -374,3 +374,45 @@ class ExtractDuplicateWarningError(BaseAppException):
             duplicate_type=duplicate_type,
             contract_key=contract_key,
         )
+
+
+class FileTooLargeError(BaseAppException):
+    def __init__(self, max_size_mb: int = 10):
+        super().__init__(
+            status_code=413,
+            code="RM-0035",
+            message_en=f"File exceeds maximum allowed size of {max_size_mb}MB.",
+            message_pt=f"O arquivo excede o tamanho máximo permitido de {max_size_mb}MB.",
+            max_size_mb=max_size_mb,
+        )
+
+
+class InvalidFileFormatError(BaseAppException):
+    def __init__(self, expected_format: str = "PDF"):
+        super().__init__(
+            status_code=400,
+            code="RM-0036",
+            message_en=f"Invalid file format. Only genuine {expected_format} files are accepted.",
+            message_pt=f"Formato de arquivo inválido. Apenas arquivos {expected_format} legítimos são aceitos.",
+            expected_format=expected_format,
+        )
+
+
+class CurrentPasswordRequiredError(BaseAppException):
+    def __init__(self):
+        super().__init__(
+            status_code=400,
+            code="RM-0037",
+            message_en="Current password is required to change password.",
+            message_pt="A senha atual é obrigatória para alterar a senha.",
+        )
+
+
+class InvalidCurrentPasswordError(BaseAppException):
+    def __init__(self):
+        super().__init__(
+            status_code=400,
+            code="RM-0038",
+            message_en="Current password provided is incorrect.",
+            message_pt="A senha atual informada está incorreta.",
+        )

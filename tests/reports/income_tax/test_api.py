@@ -511,3 +511,39 @@ def test_old_income_tax_and_analysis_routes_are_removed(auth_client):
 
     assert old_income_tax.status_code == 404
     assert old_analysis.status_code == 404
+
+
+def test_export_income_tax_csv_sanitizes_dangerous_prefixes(
+    auth_client,
+    owner_factory,
+    property_factory,
+    tenant_factory,
+    contract_factory,
+    extract_batch_factory,
+    payment_factory,
+):
+    owner = owner_factory(name="=cmd|'calc'!A0")
+    tenant = tenant_factory(name="+InquilinoPerigoso")
+    prop = property_factory(
+        property_name="@ImovelPerigoso",
+        equity_participations=[{"owner_key": owner["key"], "participation_percentage": 100}],
+    )
+    contract = contract_factory(
+        payload={"property_key": prop["key"], "tenant_key": tenant["key"], "rent_amount": 1000}
+    )
+    _paid_batch(
+        extract_batch_factory,
+        payment_factory,
+        contract["key"],
+        [{"category": "rent", "description": "Aluguel", "amount": 1000, "is_credit": True}],
+        "2026-01-10",
+    )
+
+    export = auth_client.get(
+        "/reports/income-tax/export",
+        params={"start_date": "2026-01-01", "end_date": "2026-01-31"},
+    )
+    csv_rows = list(csv.reader(StringIO(export.text), delimiter=";"))
+    assert len(csv_rows) == 1
+    history_cell = csv_rows[0][5]
+    assert not history_cell.startswith(("=", "+", "-", "@"))
