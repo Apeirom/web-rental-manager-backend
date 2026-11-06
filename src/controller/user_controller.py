@@ -1,10 +1,23 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from src.repository.user_repository import UserRepository
-from src.schemas.user_schema import UserCreateSchema, UserLoginSchema, UserUpdateSchema, UserRoleUpdateSchema
+from src.schemas.user_schema import (
+    UserCreateSchema,
+    UserLoginSchema,
+    UserUpdateSchema,
+    UserRoleUpdateSchema,
+    AdminResetPasswordSchema,
+)
 from src.dto.user_dto import UserDTO, TokenDTO, LoginResponseDTO
 from src.dto.paginated_response import PaginatedResponseDTO
-from src.errors.custom_errors import UserDuplicateEmailError, InvalidCredentialsError, UserNotFoundError, InvalidUserRole
+from src.errors.custom_errors import (
+    UserDuplicateEmailError,
+    InvalidCredentialsError,
+    UserNotFoundError,
+    InvalidUserRole,
+    CurrentPasswordRequiredError,
+    InvalidCurrentPasswordError,
+)
 from src.utils.security import get_password_hash, verify_password, create_access_token
 
 class UserController:
@@ -68,7 +81,13 @@ class UserController:
             if existing:
                 raise UserDuplicateEmailError(email=schema.email)
         
-        hashed_pw = get_password_hash(schema.password) if schema.password else None
+        hashed_pw = None
+        if schema.password:
+            if not schema.current_password:
+                raise CurrentPasswordRequiredError()
+            if not verify_password(schema.current_password, user_model.hashed_password):
+                raise InvalidCurrentPasswordError()
+            hashed_pw = get_password_hash(schema.password)
         
         updated_model = self.user_repository.update(
             user_model=user_model,
@@ -99,4 +118,15 @@ class UserController:
             raise UserNotFoundError(target_user_key)
         
         updated_model = self.user_repository.update(user_model=target_user, role=schema.role)
+        return UserDTO.model_validate(updated_model)
+
+    def admin_reset_password(self, current_user_data: dict, target_user_key: str, schema: AdminResetPasswordSchema) -> UserDTO:
+        self.validate_master_user(current_user_data)
+
+        target_user = self.user_repository.get_by_key(target_user_key)
+        if not target_user:
+            raise UserNotFoundError(target_user_key)
+
+        hashed_pw = get_password_hash(schema.new_password)
+        updated_model = self.user_repository.update(user_model=target_user, hashed_password=hashed_pw)
         return UserDTO.model_validate(updated_model)

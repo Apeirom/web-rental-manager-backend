@@ -29,6 +29,7 @@ from src.models.owner_model import OwnerModel
 from src.repository.income_tax_repository import IncomeTaxRepository
 from src.repository.owner_repository import OwnerRepository
 from src.utils.document_number import document_number_type
+from src.utils.sanitizer import sanitize_csv_cell
 
 
 class InvalidIncomeTaxTenantDocumentError(ValueError):
@@ -318,7 +319,7 @@ class IncomeTaxController:
                         if extract.total_deductions
                         else ""
                     ),
-                    history,
+                    sanitize_csv_cell(history),
                     extract.tenant_document_type,
                 ]
             )

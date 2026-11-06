@@ -12,6 +12,7 @@ from src.schemas.extract_batch_schema import ExtractBatchCreateSchema, ExtractBa
 from src.controller.extract_batch_controller import ExtractBatchController
 from src.controller.extract_controller import ExtractController
 from src.dependencies.authorization import require_master_user
+from src.utils.file_validation import read_upload_file_safely
 
 bearer_scheme = HTTPBearer()
 
@@ -66,7 +67,7 @@ def reconcile_extract_batch(batch_key: str, db: Session = Depends(get_db)):
 @extract_batch_router.post("/{batch_key}/upload-receipt", response_model=ExtractBatchDTO)
 def upload_batch_receipt(batch_key: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
     controller = ExtractBatchController(db)
-    file_bytes = file.file.read()
+    file_bytes = read_upload_file_safely(file)
     return controller.upload_receipt(batch_key=batch_key, file_bytes=file_bytes, content_type=file.content_type)
 
 
