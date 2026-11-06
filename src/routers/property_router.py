@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.security import HTTPBearer
+from sqlalchemy.orm import Session
 from typing import Optional
 
+from src.database.config import get_db
 from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.property_dto import PropertyDTO
 from src.schemas.property_schema import PropertyCreateSchema, PropertyUpdateSchema
 from src.controller.property_controller import PropertyController
-from src.dependencies.authorization import require_master_user
-from src.dependencies.property import get_property_controller
+from src.utils.security import require_master_user
 
 bearer_scheme = HTTPBearer()
 
@@ -20,8 +21,9 @@ property_router = APIRouter(
 @property_router.post("", response_model=PropertyDTO, status_code=status.HTTP_201_CREATED)
 def create_property(
     schema: PropertyCreateSchema,
-    controller: PropertyController = Depends(get_property_controller),
+    db: Session = Depends(get_db),
 ) -> PropertyDTO:
+    controller = PropertyController(db)
     return controller.create_property(schema)
 
 @property_router.get("", response_model=PaginatedResponseDTO[PropertyDTO])
@@ -32,23 +34,26 @@ def list_properties(
     property_name: Optional[str] = None,
     owner_name: Optional[str] = None,
     only_active_contracts: bool = False,
-    controller: PropertyController = Depends(get_property_controller),
+    db: Session = Depends(get_db),
 ) -> PaginatedResponseDTO[PropertyDTO]:
+    controller = PropertyController(db)
     return controller.get_paginated_properties(skip, limit, search_term, property_name, owner_name, only_active_contracts)
 
 @property_router.get("/{property_key}", response_model=PropertyDTO)
 def get_property(
     property_key: str,
-    controller: PropertyController = Depends(get_property_controller),
+    db: Session = Depends(get_db),
 ) -> PropertyDTO:
+    controller = PropertyController(db)
     return controller.get_property(property_key)
 
 @property_router.put("/{property_key}", response_model=PropertyDTO)
 def update_property(
     property_key: str,
     schema: PropertyUpdateSchema,
-    controller: PropertyController = Depends(get_property_controller),
+    db: Session = Depends(get_db),
 ) -> PropertyDTO:
+    controller = PropertyController(db)
     return controller.update_property(property_key, schema)
 
 @property_router.delete(
@@ -58,6 +63,7 @@ def update_property(
 )
 def delete_property(
     property_key: str,
-    controller: PropertyController = Depends(get_property_controller),
+    db: Session = Depends(get_db),
 ) -> None:
+    controller = PropertyController(db)
     controller.delete_property(property_key)

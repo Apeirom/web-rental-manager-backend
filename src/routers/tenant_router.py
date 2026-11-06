@@ -8,7 +8,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.tenant_dto import TenantDTO
 from src.schemas.tenant_schema import TenantCreateSchema, TenantUpdateSchema
 from src.controller.tenant_controller import TenantController
-from src.dependencies.authorization import require_master_user
+from src.utils.security import require_master_user
 
 bearer_scheme = HTTPBearer()
 

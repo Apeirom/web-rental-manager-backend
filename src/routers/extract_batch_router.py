@@ -11,7 +11,7 @@ from src.dto.extract_dto import ExtractDTO
 from src.schemas.extract_batch_schema import ExtractBatchCreateSchema, ExtractBatchUpdateSchema
 from src.controller.extract_batch_controller import ExtractBatchController
 from src.controller.extract_controller import ExtractController
-from src.dependencies.authorization import require_master_user
+from src.utils.security import require_master_user
 from src.utils.file_validation import read_upload_file_safely
 
 bearer_scheme = HTTPBearer()

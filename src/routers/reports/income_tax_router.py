@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer
+from sqlalchemy.orm import Session
 from datetime import date
 
 from src.constants.income_tax_constants import IncomeTaxTenantType
 from src.controller.income_tax_controller import IncomeTaxController
-from src.dependencies.income_tax import get_income_tax_controller
+from src.database.config import get_db
 from src.dto.income_tax_dto import IncomeTaxSummaryDTO
 
 bearer_scheme = HTTPBearer()
@@ -25,8 +26,9 @@ def get_income_tax_summary(
     tenant_type: IncomeTaxTenantType = Query(
         default=IncomeTaxTenantType.BOTH
     ),
-    controller: IncomeTaxController = Depends(get_income_tax_controller),
+    db: Session = Depends(get_db),
 ) -> IncomeTaxSummaryDTO:
+    controller = IncomeTaxController(db)
     return controller.get_summary(
         owner_key=owner_key,
         start_date=start_date,
@@ -43,8 +45,9 @@ def export_income_tax_csv(
     tenant_type: IncomeTaxTenantType = Query(
         default=IncomeTaxTenantType.BOTH
     ),
-    controller: IncomeTaxController = Depends(get_income_tax_controller),
+    db: Session = Depends(get_db),
 ) -> StreamingResponse:
+    controller = IncomeTaxController(db)
     content, summary = controller.export_csv(
         owner_key=owner_key,
         start_date=start_date,
