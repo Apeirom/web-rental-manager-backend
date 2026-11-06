@@ -66,13 +66,15 @@ def _participation(
 
 
 def _controller(repository: Mock) -> IncomeTaxController:
-    owner_repository = Mock()
-    owner_repository.get_by_key.return_value = SimpleNamespace(
+    controller = IncomeTaxController(Mock())
+    controller.owner_repository = Mock()
+    controller.owner_repository.get_by_key.return_value = SimpleNamespace(
         key="owner-key",
         name="Owner",
         id=1,
     )
-    return IncomeTaxController(owner_repository, repository)
+    controller.income_tax_repository = repository
+    return controller
 
 
 def test_build_summary_applies_owner_share_and_excludes_non_tax_items():
@@ -208,7 +210,7 @@ def test_resolve_period_supports_one_sided_date_filters():
 
 
 def test_controller_converts_reversed_date_range_to_api_error():
-    controller = IncomeTaxController(Mock(), Mock())
+    controller = IncomeTaxController(Mock())
 
     with pytest.raises(IncomeTaxInvalidPeriodError):
         controller.get_summary(

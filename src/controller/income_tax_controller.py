@@ -3,6 +3,8 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from io import StringIO
 
+from sqlalchemy.orm import Session
+
 from src.constants.income_tax_constants import (
     INCOME_TAX_CENT,
     INCOME_TAX_DEFAULT_PERIOD_DAYS,
@@ -74,13 +76,9 @@ def _brl(value: Decimal) -> str:
 
 
 class IncomeTaxController:
-    def __init__(
-        self,
-        owner_repository: OwnerRepository,
-        income_tax_repository: IncomeTaxRepository,
-    ):
-        self.owner_repository = owner_repository
-        self.income_tax_repository = income_tax_repository
+    def __init__(self, db: Session):
+        self.owner_repository = OwnerRepository(db)
+        self.income_tax_repository = IncomeTaxRepository(db)
 
     @staticmethod
     def resolve_period(

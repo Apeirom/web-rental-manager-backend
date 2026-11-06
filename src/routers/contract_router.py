@@ -4,13 +4,12 @@ from sqlalchemy.orm import Session
 from src.database.config import get_db
 from typing import Optional
 
-from src.utils.security import get_user_info_by_token
+from src.utils.security import get_user_info_by_token, require_master_user
 
 from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.contract_dto import ContractDTO
 from src.schemas.contract_schema import ContractSchema
 from src.controller.contract_controller import ContractController
-from src.dependencies.authorization import require_master_user
 from src.utils.file_validation import read_upload_file_safely
 
 bearer_scheme = HTTPBearer()

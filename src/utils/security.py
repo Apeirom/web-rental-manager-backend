@@ -2,7 +2,9 @@ import os
 import jwt
 import bcrypt
 from datetime import datetime, timedelta, timezone
-from fastapi import Request, HTTPException, status
+from fastapi import Depends, Request, HTTPException, status
+from sqlalchemy.orm import Session
+from src.database.config import get_db
 from src.errors.custom_errors import NotProvidedCredentials
 
 
@@ -42,3 +44,10 @@ def get_user_info_by_token(request: Request) -> dict:
         "email": payload.get("email"),
         "role": payload.get("role")
     }
+
+def require_master_user(
+    current_user_data: dict = Depends(get_user_info_by_token),
+    db: Session = Depends(get_db),
+) -> None:
+    from src.controller.user_controller import UserController
+    UserController(db).validate_master_user(current_user_data)

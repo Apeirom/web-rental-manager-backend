@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation
+from sqlalchemy.orm import Session
 
 from src.constants.property_constants import (
     EQUITY_PARTICIPATION_MINIMUM_PERCENTAGE,
@@ -23,13 +24,9 @@ from src.errors.custom_errors import (
 )
 
 class PropertyController:
-    def __init__(
-        self,
-        property_repository: PropertyRepository,
-        owner_repository: OwnerRepository,
-    ):
-        self.property_repository = property_repository
-        self.owner_repository = owner_repository
+    def __init__(self, db: Session):
+        self.property_repository = PropertyRepository(db)
+        self.owner_repository = OwnerRepository(db)
 
     def _resolve_participations(
         self,
