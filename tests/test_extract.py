@@ -332,7 +332,7 @@ def test_upload_extract_batch_receipt(auth_client, base_contract_key):
     with patch("src.connectors.S3_storage_connector.S3StorageConnector.upload_file") as mock_upload:
         mock_upload.return_value = f"https://fake-supabase.com/extracts/{batch_key}_v1.pdf"
 
-        file_data = {"file": ("comprovante.pdf", b"Conteudo em bytes", "application/pdf")}
+        file_data = {"file": ("comprovante.pdf", b"%PDF-1.4 Conteudo em bytes", "application/pdf")}
         response = auth_client.post(f"/extract-batches/{batch_key}/upload-receipt", files=file_data)
 
         assert response.status_code == 200

@@ -266,9 +266,26 @@ def test_upload_contract_document(auth_client, contract_factory):
     with patch("src.connectors.S3_storage_connector.S3StorageConnector.upload_file") as mock_upload:
         mock_upload.return_value = f"https://fake-supabase.com/contracts/{contract_key}_v1.pdf"
 
-        file_data = {"file": ("contrato_falso.pdf", b"Conteudo em bytes do PDF", "application/pdf")}
+        file_data = {"file": ("contrato_falso.pdf", b"%PDF-1.4 Conteudo em bytes do PDF", "application/pdf")}
         response = auth_client.post(f"/contracts/{contract_key}/upload-document", files=file_data)
 
         assert response.status_code == 200
         assert response.json()["file_path"] == f"https://fake-supabase.com/contracts/{contract_key}_v1.pdf"
         mock_upload.assert_called_once()
+
+
+def test_upload_contract_document_file_too_large(auth_client, base_contract_key):
+    oversized_bytes = b"%PDF" + (b"0" * (10 * 1024 * 1024 + 1))
+    file_data = {"file": ("contrato_grande.pdf", oversized_bytes, "application/pdf")}
+    response = auth_client.post(f"/contracts/{base_contract_key}/upload-document", files=file_data)
+
+    assert response.status_code == 413
+    assert response.json()["detail"]["code"] == "RM-0035"
+
+
+def test_upload_contract_document_invalid_magic_bytes(auth_client, base_contract_key):
+    file_data = {"file": ("malicioso.pdf", b"<script>alert(1)</script>", "application/pdf")}
+    response = auth_client.post(f"/contracts/{base_contract_key}/upload-document", files=file_data)
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "RM-0036"

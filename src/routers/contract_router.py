@@ -11,6 +11,7 @@ from src.dto.contract_dto import ContractDTO
 from src.schemas.contract_schema import ContractSchema
 from src.controller.contract_controller import ContractController
 from src.dependencies.authorization import require_master_user
+from src.utils.file_validation import read_upload_file_safely
 
 bearer_scheme = HTTPBearer()
 
@@ -55,7 +56,7 @@ def upload_contract_document(
     file: UploadFile = File(...), 
     db: Session = Depends(get_db)
 ):
-    file_bytes = file.file.read()
+    file_bytes = read_upload_file_safely(file)
     return ContractController(db).upload_document(
         contract_key=contract_key, 
         file_bytes=file_bytes, 
