@@ -8,7 +8,7 @@ from src.dto.owner_dto import OwnerDTO
 from src.dto.paginated_response import PaginatedResponseDTO
 from src.schemas.owner_schema import OwnerCreateSchema, OwnerUpdateSchema
 from src.controller.owner_controller import OwnerController
-from src.dependencies.authorization import require_master_user
+from src.utils.security import require_master_user
 
 bearer_scheme = HTTPBearer()
 

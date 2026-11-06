@@ -9,7 +9,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.guarantee_dto import DepositDTO, GuarantorDTO, BailInsuranceDTO
 from src.schemas.guarantee_schema import GuaranteeSchema
 from src.controller.guarantee_controller import GuaranteeController
-from src.dependencies.authorization import require_master_user
+from src.utils.security import require_master_user
 
 bearer_scheme = HTTPBearer()
 

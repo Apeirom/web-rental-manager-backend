@@ -13,9 +13,7 @@ from src.schemas.user_schema import (
     AdminResetPasswordSchema,
 )
 from src.controller.user_controller import UserController
-from src.dependencies.authorization import require_master_user
-
-from src.utils.security import get_user_info_by_token
+from src.utils.security import get_user_info_by_token, require_master_user
 
 bearer_scheme = HTTPBearer()
 

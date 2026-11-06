@@ -8,7 +8,7 @@ from src.dto.paginated_response import PaginatedResponseDTO
 from src.dto.payment_dto import PaymentDTO
 from src.schemas.payment_schema import PaymentCreateSchema, PaymentUpdateSchema
 from src.controller.payment_controller import PaymentController
-from src.dependencies.authorization import require_master_user
+from src.utils.security import require_master_user
 
 bearer_scheme = HTTPBearer()
 
