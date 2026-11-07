@@ -24,6 +24,15 @@ def test_get_all_owners(auth_client):
     assert isinstance(res_json["data"], list)
     assert len(res_json["data"]) > 0
 
+def test_get_all_owners_ordered_by_created_at_desc(auth_client, owner_factory):
+    owner_one = owner_factory(name="Owner Chrono One", document_number="529.982.247-25")
+    owner_two = owner_factory(name="Owner Chrono Two", document_number="111.444.777-35")
+
+    response = auth_client.get("/owners?limit=10")
+    assert response.status_code == 200
+    owner_keys = [item["key"] for item in response.json()["data"]]
+    assert owner_keys.index(owner_two["key"]) < owner_keys.index(owner_one["key"])
+
 def test_get_owner_by_key(auth_client):
     payload = {"name": "Marcos Silva"}
     create_res = auth_client.post("/owners", json=payload)

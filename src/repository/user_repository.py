@@ -50,5 +50,10 @@ class UserRepository(BaseRepository):
             )
             
         total = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = (
+            query.order_by(UserModel.created_at.desc(), UserModel.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
         return total, items

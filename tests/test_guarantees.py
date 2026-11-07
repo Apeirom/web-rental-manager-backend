@@ -73,6 +73,15 @@ def test_get_all_guarantees(auth_client):
     for item in response_filtered.json()["data"]:
         assert item["type"] == "deposit"
 
+def test_get_all_guarantees_ordered_by_created_at_desc(auth_client, guarantee_factory):
+    guarantee_one = guarantee_factory(payload={"type": "deposit", "amount": 1000.00})
+    guarantee_two = guarantee_factory(payload={"type": "deposit", "amount": 2000.00})
+
+    response = auth_client.get("/guarantees?limit=10")
+    assert response.status_code == 200
+    guarantee_keys = [item["key"] for item in response.json()["data"]]
+    assert guarantee_keys.index(guarantee_two["key"]) < guarantee_keys.index(guarantee_one["key"])
+
 def test_update_guarantee(auth_client):
     payload = {
         "type": "deposit",

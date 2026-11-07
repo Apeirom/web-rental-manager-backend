@@ -26,6 +26,17 @@ def test_get_all_payments(auth_client):
     assert isinstance(res_json["data"], list)
     assert len(res_json["data"]) >= 1
 
+def test_get_all_payments_ordered_by_payment_date_desc(auth_client, payment_factory):
+    payment_one = payment_factory(payment_date="2026-01-10", amount=100.00)
+    payment_two = payment_factory(payment_date="2026-05-20", amount=200.00)
+    payment_three = payment_factory(payment_date="2026-03-15", amount=300.00)
+
+    response = auth_client.get("/payments?limit=10")
+    assert response.status_code == 200
+    payment_keys = [item["key"] for item in response.json()["data"]]
+    assert payment_keys.index(payment_two["key"]) < payment_keys.index(payment_three["key"])
+    assert payment_keys.index(payment_three["key"]) < payment_keys.index(payment_one["key"])
+
 def test_get_all_payments_with_params(auth_client):
     auth_client.post("/payments", json={"payment_date": "2026-10-05", "amount": 3000.00})
     auth_client.post("/payments", json={"payment_date": "2026-10-15", "amount": 3000.00})

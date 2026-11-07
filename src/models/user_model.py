@@ -1,9 +1,12 @@
 import uuid
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Index
 from src.models.base import Base
 
 class UserModel(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_created_at", "created_at"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))

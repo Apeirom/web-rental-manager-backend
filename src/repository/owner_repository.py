@@ -29,7 +29,12 @@ class OwnerRepository(BaseRepository):
             )
 
         total_count = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = (
+            query.order_by(OwnerModel.created_at.desc(), OwnerModel.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
         return total_count, items
     
