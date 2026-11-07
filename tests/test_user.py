@@ -73,6 +73,30 @@ def test_list_paginated_users(auth_client):
     assert isinstance(response.json()["data"], list)
     assert len(response.json()["data"]) >= 1
 
+def test_list_paginated_users_ordered_by_created_at_desc(auth_client):
+    user_one = auth_client.post(
+        "/users/register",
+        json={
+            "name": "User Order One",
+            "email": "user_order_one@test.com",
+            "password": "password123",
+        },
+    ).json()
+
+    user_two = auth_client.post(
+        "/users/register",
+        json={
+            "name": "User Order Two",
+            "email": "user_order_two@test.com",
+            "password": "password123",
+        },
+    ).json()
+
+    response = auth_client.get("/users?limit=10")
+    assert response.status_code == 200
+    user_keys = [item["key"] for item in response.json()["data"]]
+    assert user_keys.index(user_two["key"]) < user_keys.index(user_one["key"])
+
 def test_update_user_role(auth_client):
     payload = {
         "name": "Role Test User",

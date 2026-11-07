@@ -67,7 +67,12 @@ class GuaranteeRepository(BaseRepository):
             )
 
         total_count = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = (
+            query.order_by(poly.created_at.desc(), poly.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
         return total_count, items
 

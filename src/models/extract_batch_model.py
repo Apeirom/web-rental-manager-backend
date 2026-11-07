@@ -1,10 +1,13 @@
 import uuid
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from src.models.base import Base
 
 class ExtractBatchModel(Base):
     __tablename__ = "extract_batches"
+    __table_args__ = (
+        Index("ix_extract_batches_created_at", "created_at"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))

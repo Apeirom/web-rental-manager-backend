@@ -111,6 +111,15 @@ def test_get_all_extract_batches_with_params(auth_client, base_contract_key):
     assert res_json["skip"] == 0
     assert res_json["limit"] == 5
 
+def test_get_all_extract_batches_ordered_by_created_at_desc(auth_client, extract_batch_factory):
+    batch_one = extract_batch_factory(month_ref=1, year_ref=2026)
+    batch_two = extract_batch_factory(month_ref=2, year_ref=2026)
+
+    response = auth_client.get("/extract-batches?limit=10")
+    assert response.status_code == 200
+    batch_keys = [item["key"] for item in response.json()["data"]]
+    assert batch_keys.index(batch_two["key"]) < batch_keys.index(batch_one["key"])
+
 def test_get_individual_extract_from_batch(auth_client, base_contract_key):
     payload = {
         "extracts": [

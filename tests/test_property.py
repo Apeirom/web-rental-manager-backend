@@ -40,6 +40,15 @@ def test_get_all_properties(auth_client):
     assert "limit" in res_json
     assert isinstance(res_json["data"], list)
 
+def test_get_all_properties_ordered_by_created_at_desc(auth_client, property_factory):
+    property_one = property_factory(property_name="Property Chrono One")
+    property_two = property_factory(property_name="Property Chrono Two")
+
+    response = auth_client.get("/properties?limit=10")
+    assert response.status_code == 200
+    property_keys = [item["key"] for item in response.json()["data"]]
+    assert property_keys.index(property_two["key"]) < property_keys.index(property_one["key"])
+
 def test_get_property_by_key(auth_client, owner_factory):
     owner_key = owner_factory(name="Jane Doe")["key"]
 

@@ -289,3 +289,14 @@ def test_upload_contract_document_invalid_magic_bytes(auth_client, base_contract
 
     assert response.status_code == 400
     assert response.json()["detail"]["code"] == "RM-0036"
+
+
+def test_get_all_contracts_ordered_by_created_at_desc(auth_client, contract_factory):
+    contract_one = contract_factory(payload={"rent_amount": 1500.00})
+    contract_two = contract_factory(payload={"rent_amount": 2500.00})
+
+    response = auth_client.get("/contracts?limit=10")
+    assert response.status_code == 200
+    contract_keys = [item["key"] for item in response.json()["data"]]
+    assert contract_keys.index(contract_two["key"]) < contract_keys.index(contract_one["key"])
+

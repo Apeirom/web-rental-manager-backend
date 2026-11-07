@@ -1,10 +1,13 @@
 import uuid
-from sqlalchemy import Boolean, Column, Date, Integer, String, Float, ForeignKey, Enum
+from sqlalchemy import Boolean, Column, Date, Integer, String, Float, ForeignKey, Enum, Index
 from src.models.base import Base
 from src.models.guarantee_type_model import GuaranteeTypeEnum
 
 class GuaranteeModel(Base):
     __tablename__ = "guarantees"
+    __table_args__ = (
+        Index("ix_guarantees_created_at", "created_at"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))

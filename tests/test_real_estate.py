@@ -47,6 +47,15 @@ def test_get_all_real_estates(auth_client):
     assert "limit" in res_json
     assert isinstance(res_json["data"], list)
 
+def test_get_all_real_estates_ordered_by_created_at_desc(auth_client, real_estate_factory):
+    real_estate_one = real_estate_factory(name="Realty Chrono One", cnpj="04.252.011/0001-10")
+    real_estate_two = real_estate_factory(name="Realty Chrono Two", cnpj="11.222.333/0001-81")
+
+    response = auth_client.get("/real-estates?limit=10")
+    assert response.status_code == 200
+    realty_keys = [item["key"] for item in response.json()["data"]]
+    assert realty_keys.index(real_estate_two["key"]) < realty_keys.index(real_estate_one["key"])
+
 def test_get_real_estate_by_key(auth_client):
     payload = {
         "name": "Agency B",

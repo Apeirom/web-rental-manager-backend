@@ -111,7 +111,12 @@ class ExtractBatchRepository(BaseRepository):
         query = query.distinct()
 
         total_count = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = (
+            query.order_by(ExtractBatchModel.created_at.desc(), ExtractBatchModel.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
         return total_count, items
 

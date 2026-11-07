@@ -1,10 +1,13 @@
 import uuid
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from src.models.base import Base
 
 class ContractModel(Base):
     __tablename__ = "contracts"
+    __table_args__ = (
+        Index("ix_contracts_created_at", "created_at"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
