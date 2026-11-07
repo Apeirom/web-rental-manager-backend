@@ -48,6 +48,15 @@ def test_get_all_tenants(auth_client):
     assert "limit" in res_json
     assert isinstance(res_json["data"], list)
 
+def test_get_all_tenants_ordered_by_created_at_desc(auth_client, tenant_factory):
+    tenant_one = tenant_factory(name="Tenant Chrono One", document_number="529.982.247-25")
+    tenant_two = tenant_factory(name="Tenant Chrono Two", document_number="111.444.777-35")
+
+    response = auth_client.get("/tenants?limit=10")
+    assert response.status_code == 200
+    tenant_keys = [item["key"] for item in response.json()["data"]]
+    assert tenant_keys.index(tenant_two["key"]) < tenant_keys.index(tenant_one["key"])
+
 def test_get_tenant_by_key(auth_client):
     payload = {
         "name": "Jane Doe",

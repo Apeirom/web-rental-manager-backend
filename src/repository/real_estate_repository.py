@@ -60,7 +60,12 @@ class RealEstateRepository(BaseRepository):
                          .distinct()
 
         total_count = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = (
+            query.order_by(RealEstateModel.created_at.desc(), RealEstateModel.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
         return total_count, items
 

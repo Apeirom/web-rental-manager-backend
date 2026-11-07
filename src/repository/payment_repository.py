@@ -74,8 +74,11 @@ class PaymentRepository(BaseRepository):
         elif is_linked is False:
             query = query.filter(~PaymentModel.extract_batch.has())
 
-        query = query.order_by(PaymentModel.payment_date.desc())
-
         total = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = (
+            query.order_by(PaymentModel.payment_date.desc(), PaymentModel.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
         return total, items

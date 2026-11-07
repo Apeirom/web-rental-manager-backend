@@ -54,7 +54,12 @@ class TenantRepository(BaseRepository):
                          .distinct()
 
         total_count = query.count()
-        items = query.offset(skip).limit(limit).all()
+        items = (
+            query.order_by(TenantModel.created_at.desc(), TenantModel.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
         return total_count, items
 
