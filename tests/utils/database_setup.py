@@ -17,7 +17,8 @@ def seed_enumerators(db: Session):
         "other_revenues", 
         "bank_fee", 
         "administration_fee", 
-        "others"
+        "others",
+        "condominium"
     ]
     for value in default_extract_categories:
         db.add(ExtractItemCategoryModel(enumerator=value))
