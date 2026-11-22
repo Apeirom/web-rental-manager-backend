@@ -47,6 +47,7 @@ def seed_all(db: Session):
         "bank_fee",
         "administration_fee",
         "others",
+        "condominium",
     ]
     category_map = {}
     for cat in extract_categories:
