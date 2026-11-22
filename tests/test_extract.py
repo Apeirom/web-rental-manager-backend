@@ -26,6 +26,40 @@ def test_create_extract_batch_success(auth_client, base_contract_key):
     assert res_json["extracts"][0]["contract"]["key"] == base_contract_key
     assert "total_net_transfer" in res_json
 
+def test_create_extract_batch_with_condominium_item(auth_client, base_contract_key):
+    payload = {
+        "extracts": [
+            {
+                "month_ref": 3,
+                "year_ref": 2027,
+                "contract_key": base_contract_key,
+                "items": [
+                    {
+                        "category": "rent",
+                        "description": "Aluguel",
+                        "amount": 2000.00,
+                        "is_credit": True,
+                        "is_withheld_at_source": False,
+                    },
+                    {
+                        "category": "condominium",
+                        "description": "Condomínio",
+                        "amount": 350.00,
+                        "is_credit": False,
+                        "is_withheld_at_source": False,
+                    },
+                ],
+            }
+        ]
+    }
+    response = auth_client.post("/extract-batches", json=payload)
+
+    assert response.status_code == 201
+    res_json = response.json()
+    assert res_json["extracts"][0]["net_transfer"] == 2350.00
+    assert any(item["category"] == "condominium" for item in res_json["extracts"][0]["items"])
+
+
 def test_create_extract_batch_invalid_contract(auth_client):
     payload = {
         "extracts": [
